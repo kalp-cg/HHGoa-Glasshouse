@@ -100,4 +100,10 @@ contract RailTest {
         assert(token.balanceOf(BOB) == 1_000_000);
         assert(token.balanceOf(address(rail)) == 0);
     }
+
+    function testReleaseRejectsZeroAddress() public {
+        vm.expectRevert(Rail.InvalidRecipient.selector);
+        vm.prank(RELAYER);
+        rail.release(address(0));
+    }
 }
