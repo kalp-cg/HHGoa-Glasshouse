@@ -1,0 +1,50 @@
+# Rule 2 (CONTRACTS.md §3): two unlabelled agent wallets pay services within 90 s of each other,
+# in >= 4 distinct 10-minute sessions, over >= 3 distinct days, and >= 20x more often than chance
+# (expected = pA * pB * 180 / span). Same definitions as packages/engine/src/analyze.ts:
+#   observed = payment pairs within 90 s; session/day keyed on the earlier payment's ts.
+# Each pair is counted once, in the bucket max(homeA, homeB), which both payments are in.
+CREATE QUERY link_coactivity(STRING mode, INT span) FOR GRAPH Glasshouse SYNTAX v1 {
+  TYPEDEF TUPLE<STRING wallet, INT ts, INT home> Item;
+  TYPEDEF TUPLE<STRING a, STRING b, INT days> Link;
+  ListAccum<Item> @items;
+  MapAccum<STRING, SumAccum<INT>> @@payments;
+  GroupByAccum<STRING a, STRING b, SumAccum<INT> observed, SetAccum<INT> sessions, SetAccum<INT> days> @@pairs;
+  ListAccum<Link> @@links;
+
+  pays = {Payment.*};
+  pays = SELECT p FROM pays:p WHERE p.mode == mode
+         POST-ACCUM @@payments += (p.wallet -> 1);
+
+  buckets = SELECT b FROM pays:p -(ACTIVE_IN:e)-> Bucket:b
+            ACCUM b.@items += Item(p.wallet, p.ts, p.home);
+
+  buckets = SELECT b FROM buckets:b
+            POST-ACCUM
+              FOREACH i IN RANGE[0, b.@items.size() - 2] DO
+                FOREACH j IN RANGE[i + 1, b.@items.size() - 1] DO
+                  IF b.@items.get(i).wallet != b.@items.get(j).wallet
+                     AND b.@items.get(i).ts - b.@items.get(j).ts <= 90
+                     AND b.@items.get(j).ts - b.@items.get(i).ts <= 90
+                     AND (b.@items.get(i).home == b.k OR b.@items.get(j).home == b.k) THEN
+                    @@pairs += (
+                      CASE WHEN b.@items.get(i).wallet < b.@items.get(j).wallet THEN b.@items.get(i).wallet ELSE b.@items.get(j).wallet END,
+                      CASE WHEN b.@items.get(i).wallet < b.@items.get(j).wallet THEN b.@items.get(j).wallet ELSE b.@items.get(i).wallet END
+                      -> 1,
+                      CASE WHEN b.@items.get(i).ts < b.@items.get(j).ts
+                        THEN b.@items.get(i).ts - b.@items.get(i).ts % 600
+                        ELSE b.@items.get(j).ts - b.@items.get(j).ts % 600 END,
+                      CASE WHEN b.@items.get(i).ts < b.@items.get(j).ts
+                        THEN b.@items.get(i).ts - b.@items.get(i).ts % 86400
+                        ELSE b.@items.get(j).ts - b.@items.get(j).ts % 86400 END)
+                  END
+                END
+              END;
+
+  FOREACH g IN @@pairs DO
+    IF g.sessions.size() >= 4 AND g.days.size() >= 3
+       AND g.observed * span >= 20 * @@payments.get(g.a) * @@payments.get(g.b) * 180 THEN
+      @@links += Link(g.a, g.b, g.days.size());
+    END;
+  END;
+  PRINT @@links AS links;
+}

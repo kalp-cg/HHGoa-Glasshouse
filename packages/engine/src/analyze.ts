@@ -21,22 +21,27 @@ export function agentPayments(ledger: Ledger): Transfer[] {
 // Labelled wallets (exchanges, services, pools) never link anything.
 export function linkFunding(ledger: Ledger): SameOwnerLink[] {
   const kind = new Map(ledger.wallets.map((w) => [w.addr, w.kind]));
-  const pairs = new Map<string, { a: Address; b: Address; n: number; usdc: number }>();
+  const pairs = new Map<string, { a: Address; b: Address; n: number; micro: number }>();
   for (const t of ledger.transfers) {
     if (t.from === t.to || kind.get(t.from) !== "" || kind.get(t.to) !== "") continue;
     const key = pairKey(t.from, t.to);
-    const p = pairs.get(key) ?? { a: t.from, b: t.to, n: 0, usdc: 0 };
+    const p = pairs.get(key) ?? { a: t.from, b: t.to, n: 0, micro: 0 };
     p.n += 1;
-    p.usdc = Math.round((p.usdc + t.amount) * 1e6) / 1e6;
+    p.micro += toMicro(t.amount);
     pairs.set(key, p);
   }
-  return [...pairs.values()].map((p) => ({
-    a: p.a,
-    b: p.b,
-    rule: "funding",
-    detail: p.n === 1 ? `topped up ${p.usdc} USDC` : `topped up ${p.n} times, ${p.usdc} USDC`,
-  }));
+  return [...pairs.values()].map((p) => ({ a: p.a, b: p.b, rule: "funding", detail: fundingDetail(p.n, p.micro) }));
 }
+
+// USDC has 6 decimals; integer micro-units keep sums exact (and identical in GSQL).
+export const toMicro = (usdc: number) => Math.round(usdc * 1e6);
+export const fundingDetail = (n: number, micro: number) =>
+  n === 1 ? `topped up ${micro / 1e6} USDC` : `topped up ${n} times, ${micro / 1e6} USDC`;
+export const coactivityDetail = (days: number) => `same 2 minutes on ${days} days`;
+
+// observed >= minLift * expected, with expected = pA * pB * 2 * window / span, in integers.
+export const passesLift = (observed: number, pA: number, pB: number, span: number) =>
+  observed * span >= COACTIVITY.minLift * pA * pB * 2 * COACTIVITY.windowSec;
 
 // Rule 2: two unlabelled agent wallets pay services within 90 s of each other, in >= 4 distinct
 // 10-minute sessions, over >= 3 distinct days, and >= 20x more often than chance.
@@ -64,9 +69,9 @@ export function linkCoactivity(ledger: Ledger): SameOwnerLink[] {
 
   const links: SameOwnerLink[] = [];
   for (const p of pairs.values()) {
-    const expected = (perWallet.get(p.a)! * perWallet.get(p.b)! * 2 * COACTIVITY.windowSec) / span;
-    if (p.sessions.size >= COACTIVITY.minSessions && p.days.size >= COACTIVITY.minDays && p.observed >= COACTIVITY.minLift * expected) {
-      links.push({ a: p.a, b: p.b, rule: "co-activity", detail: `same 2 minutes on ${p.days.size} days` });
+    if (p.sessions.size >= COACTIVITY.minSessions && p.days.size >= COACTIVITY.minDays
+      && passesLift(p.observed, perWallet.get(p.a)!, perWallet.get(p.b)!, span)) {
+      links.push({ a: p.a, b: p.b, rule: "co-activity", detail: coactivityDetail(p.days.size) });
     }
   }
   return links;

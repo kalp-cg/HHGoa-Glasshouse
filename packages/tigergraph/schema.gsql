@@ -1,0 +1,15 @@
+# Glasshouse schema (TigerGraph 4.x). Ids are "<mode>:<key>" so the open and shield
+# ledgers share one graph; every query takes the mode and only touches its own half.
+#   Wallet    one per address.
+#   Payment   one per agent payment (unlabelled wallet -> service). home = floor(ts / 90).
+#   Bucket    a 90-second time slot. Each payment is ACTIVE_IN its home bucket and the next,
+#             so any two payments within 90 s share a bucket (see link_coactivity.gsql).
+#   TRANSFER  wallet -> wallet, aggregated per ordered pair (n transfers, micro-USDC total).
+#   SAME_OWNER written back by the client from the link queries; walked by owner_profile.
+CREATE VERTEX Wallet (PRIMARY_ID id STRING, addr STRING, mode STRING, kind STRING, label STRING, category STRING)
+CREATE VERTEX Payment (PRIMARY_ID id STRING, mode STRING, wallet STRING, service STRING, micro INT, ts INT, home INT)
+CREATE VERTEX Bucket (PRIMARY_ID id STRING, mode STRING, k INT)
+CREATE DIRECTED EDGE TRANSFER (FROM Wallet, TO Wallet, n INT, micro INT, first_ts INT)
+CREATE DIRECTED EDGE ACTIVE_IN (FROM Payment, TO Bucket)
+CREATE UNDIRECTED EDGE SAME_OWNER (FROM Wallet, TO Wallet, rule STRING, detail STRING)
+CREATE GRAPH Glasshouse (Wallet, Payment, Bucket, TRANSFER, ACTIVE_IN, SAME_OWNER)

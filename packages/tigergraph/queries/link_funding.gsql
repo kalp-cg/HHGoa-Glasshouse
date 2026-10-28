@@ -1,0 +1,20 @@
+# Rule 1 (CONTRACTS.md §3): an unlabelled wallet sends USDC to another unlabelled wallet → same owner.
+# Never through labelled wallets. Grouped per unordered pair, like the engine.
+CREATE QUERY link_funding(STRING mode) FOR GRAPH Glasshouse SYNTAX v1 {
+  TYPEDEF TUPLE<STRING a, STRING b, INT n, INT micro> Link;
+  GroupByAccum<STRING a, STRING b, SumAccum<INT> n, SumAccum<INT> micro> @@pairs;
+  ListAccum<Link> @@links;
+
+  wallets = {Wallet.*};
+  wallets = SELECT s FROM wallets:s -(TRANSFER:e)-> Wallet:t
+            WHERE s.mode == mode AND s.kind == "" AND t.kind == "" AND s.addr != t.addr
+            ACCUM
+              IF s.addr < t.addr THEN @@pairs += (s.addr, t.addr -> e.n, e.micro)
+              ELSE @@pairs += (t.addr, s.addr -> e.n, e.micro)
+              END;
+
+  FOREACH g IN @@pairs DO
+    @@links += Link(g.a, g.b, g.n, g.micro);
+  END;
+  PRINT @@links AS links;
+}

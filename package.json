@@ -3,12 +3,16 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.16.1",
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck && tsc -p tsconfig.json",
     "fixtures": "pnpm --filter @glasshouse/engine fixtures",
-    "demo:check": "tsx scripts/demo-check.ts"
+    "demo:check": "tsx scripts/demo-check.ts",
+    "test:parity": "pnpm --filter @glasshouse/tigergraph parity",
+    "tg:setup": "pnpm --filter @glasshouse/tigergraph setup"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

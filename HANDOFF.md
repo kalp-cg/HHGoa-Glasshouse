@@ -57,3 +57,37 @@ Blocked on / needs from others:
 Contract change request (if any): possibly `TG_SECRET` in `.env.example`. Savanna issues short-lived tokens from a secret, so the client would exchange the secret for a token itself rather than storing a token. I'll confirm against the Savanna docs at the start of Phase 2 before asking.
 
 Later (ideas, not now): none.
+
+## Claude · 28 Oct (Phase 2)
+Done:
+- `packages/tigergraph`:
+  - `schema.gsql`: Wallet, Payment, Bucket (90 s), TRANSFER, ACTIVE_IN, SAME_OWNER. The open and shield halves live in one graph with ids prefixed by mode.
+  - Queries: `link_funding`, `link_coactivity`, `owner_profile`.
+  - `client.ts`: TigerGraph 4.x REST, with doc links in the file. `load.ts`: batched upserts, at most 2,000 records per request. `links.ts`.
+  - Scripts: `pnpm tg:setup`, `pnpm test:parity`.
+  - 13 tests, including a TypeScript replay of the GSQL algorithms over the uploaded records. It gives exactly the engine's links for open and shield.
+- `apps/web/app/api`:
+  - `GET /api/profile` and `GET /api/graph` read links from TigerGraph and fall back to the engine on `OFFLINE_MODE=true`, missing config, or a TigerGraph error. The `x-glasshouse-links` header says which one answered.
+  - `POST /api/narrative`: `claude-opus-5-5` (SDK 1.3.0, low effort, server-side refusal fallback on), facts-only system prompt. It falls back to a deterministic 4-sentence template when there's no key, the call fails, or the model refuses (useful for the offline demo).
+  - 9 route tests. Offline API output is byte-identical to the fixtures.
+- Engine: Rule 2's lift check now uses integers (`passesLift`) so GSQL and the engine compare the same thing. Fixtures are unchanged.
+- `demo:check` Gate 2: the API check is live; parity runs once TG creds are set.
+
+Next: run `pnpm tg:setup` + `pnpm test:parity` against Savanna once creds are fixed. The GSQL hasn't touched a real server yet, so expect small syntax fixes. Then Phase 3.
+
+Blocked on / needs from others:
+- **Kalp (TigerGraph):** move `.env` into `glasshouse-kickoff/`. Set `TG_HOST` to the workspace URL. Put the secret → token result into `TG_TOKEN` (README → TigerGraph). Then `pnpm tg:setup && pnpm test:parity`.
+- **Antigravity:**
+  - The API is live: `/api/profile` and `/api/graph` return the same JSON as `fixtures/profile.*.json` and `fixtures/graph.*.json`, and `/api/narrative` takes `ProfileFacts`.
+  - I touched three of your files for wiring only: `apps/web/package.json` (deps `@anthropic-ai/sdk`, `@glasshouse/tigergraph`, vitest; `"test"` runs only `app/api` tests), `next.config.ts` (`transpilePackages` + tigergraph), and removed `app/api/README.md`.
+  - Put Playwright under its own script (e.g. `test:e2e`) so `pnpm test` stays fast. `demo:check` runs Playwright via `apps/web/playwright.config.ts`.
+
+Decisions made under ambiguity:
+- **Buckets are 90 s, not 2 min.** Each payment is ACTIVE_IN its home bucket and the next, so any two payments within 90 s share a bucket. Each pair is counted once, in bucket max(home), which makes GSQL exact rather than approximate.
+- **Payments are vertices.** This avoids multi-edge upserts, whose REST format is poorly documented.
+- **The API serves the synthetic seed-42 world.** A wallet outside it gets 404. The demo person's own Shield one-time wallets (from their session) count only toward `linkability.total` and `anonymity_set`, never toward linking.
+- **Token, not secret, in `.env`,** per CONTRACTS §6 (`TG_TOKEN`). TigerGraph 4.x tokens last one week by default, so the token must be refreshed weekly (README has the command). The change request to store `TG_SECRET` instead is withdrawn for now; reopen it if refreshing becomes a pain.
+
+Contract change request (if any): none.
+
+Later (ideas, not now): none.

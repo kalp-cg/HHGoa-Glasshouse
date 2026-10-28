@@ -3,7 +3,19 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "setup": "node --env-file-if-exists=../../.env --import tsx scripts/setup.ts",
+    "parity": "node --env-file-if-exists=../../.env --import tsx scripts/parity.ts"
+  },
   "dependencies": {
     "@glasshouse/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
   }
 }

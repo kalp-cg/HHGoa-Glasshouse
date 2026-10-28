@@ -1,0 +1,15 @@
+# Every wallet reachable from the seed over SAME_OWNER (the person behind the seed wallet).
+# The engine builds the rest of ProfileFacts from these members.
+CREATE QUERY owner_profile(VERTEX<Wallet> seed) FOR GRAPH Glasshouse SYNTAX v1 {
+  OrAccum @seen;
+  SetAccum<STRING> @@members;
+
+  frontier = {seed};
+  frontier = SELECT s FROM frontier:s POST-ACCUM s.@seen += TRUE, @@members += s.addr;
+  WHILE frontier.size() > 0 DO
+    frontier = SELECT t FROM frontier:s -(SAME_OWNER:e)-> Wallet:t
+               WHERE t.@seen == FALSE
+               POST-ACCUM t.@seen += TRUE, @@members += t.addr;
+  END;
+  PRINT @@members AS members;
+}

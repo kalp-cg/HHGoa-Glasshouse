@@ -13,6 +13,7 @@ interface Result { status: Status; note?: string }
 interface Check { name: string; run: () => Result }
 
 const root = join(import.meta.dirname, "..");
+if (existsSync(join(root, ".env"))) process.loadEnvFile(join(root, ".env"));
 const pending = (note: string): Check["run"] => () => ({ status: "PENDING", note });
 
 function command(cmd: string, args: string[]): Result {
@@ -25,6 +26,13 @@ function command(cmd: string, args: string[]): Result {
 // runs `cmd` only once its config file exists; until then the check is PENDING
 const whenExists = (file: string, owner: string, cmd: string, args: string[]): Check["run"] => () =>
   existsSync(join(root, file)) ? command(cmd, args) : { status: "PENDING", note: `${owner}: ${file} not there yet` };
+
+function parity(): Result {
+  if (!process.env.TG_HOST?.trim() || !process.env.TG_TOKEN?.trim()) {
+    return { status: "PENDING", note: "TG_HOST / TG_TOKEN not set in .env" };
+  }
+  return command("pnpm", ["test:parity"]);
+}
 
 function engineSeed42(): Result {
   const open = simulate(42, "open");
@@ -94,8 +102,8 @@ const gates: { name: string; checks: Check[] }[] = [
   {
     name: "Gate 2 · TigerGraph parity + live API",
     checks: [
-      { name: "pnpm test:parity: TigerGraph == engine on seed 42", run: pending("Phase 2") },
-      { name: "API returns valid ProfileFacts", run: pending("Phase 2") },
+      { name: "pnpm test:parity: TigerGraph == engine on seed 42", run: parity },
+      { name: "API returns valid ProfileFacts (route tests, offline)", run: () => command("pnpm", ["--filter", "@glasshouse/web", "test"]) },
       { name: "UI on live API, no visual change", run: pending("Antigravity Phase 2") },
     ],
   },
