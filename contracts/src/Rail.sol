@@ -16,6 +16,7 @@ contract Rail {
     mapping(address => bool) public hasDeposited;
 
     error OnlyRelayer();
+    error InvalidRecipient();
     error TokenTransferFailed();
 
     event Deposited(address depositor);
@@ -37,6 +38,7 @@ contract Rail {
 
     function release(address to) external {
         if (msg.sender != relayer) revert OnlyRelayer();
+        if (to == address(0)) revert InvalidRecipient();
         if (!usdc.transfer(to, RELEASE_AMOUNT)) revert TokenTransferFailed();
         emit Released(to);
     }

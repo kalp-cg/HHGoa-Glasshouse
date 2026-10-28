@@ -6,13 +6,19 @@
   "exports": { ".": "./src/index.ts" },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "ingest": "tsx src/ingest-cli.ts"
   },
   "dependencies": {
     "@glasshouse/engine": "workspace:*",
+    "@x402/core": "2.28.0",
+    "@x402/evm": "2.28.0",
+    "@x402/fetch": "2.28.0",
     "viem": "2.57.2"
   },
   "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
     "vite": "8.3.5",
     "vitest": "5.0.5"
   }

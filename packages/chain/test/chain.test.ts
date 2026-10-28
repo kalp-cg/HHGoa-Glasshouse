@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { privateKeyToAccount } from "viem/accounts";
-import { fetchAgentTransfers, newOneTimeWallet, payX402, verifyOwnership } from "../src/index";
+import { newOneTimeWallet, verifyOwnership } from "../src/index";
 import type { Address } from "@glasshouse/engine";
 
 describe("newOneTimeWallet", () => {
@@ -16,7 +16,6 @@ describe("newOneTimeWallet", () => {
     for (const spy of logSpies) spy.mockRestore();
   });
 });
-
 describe("verifyOwnership", () => {
   it("accepts a valid EIP-191 signature", async () => {
     const account = privateKeyToAccount(`0x${"11".repeat(32)}`);
@@ -39,14 +38,5 @@ describe("verifyOwnership", () => {
     const signature = await account.signMessage({ message: "Original challenge" });
 
     await expect(verifyOwnership(account.address as Address, "Tampered challenge", signature)).resolves.toBe(false);
-  });
-});
-
-describe("Phase 3/4 chain stubs", () => {
-  const address = "0x0000000000000000000000000000000000000001" as Address;
-
-  it("remain explicitly unimplemented", async () => {
-    await expect(fetchAgentTransfers(address, { fromBlock: 0n, toBlock: 1n })).rejects.toThrow("not implemented");
-    await expect(payX402("https://example.com", { privateKey: "0x00" })).rejects.toThrow("not implemented");
   });
 });

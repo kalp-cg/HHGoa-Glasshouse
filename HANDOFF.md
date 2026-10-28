@@ -153,3 +153,34 @@ Next:
 Blocked on / needs from others: Kalp: approve or decline Foundry installation, as required by AGENTS.md.
 Contract change request (if any): none.
 Later (ideas, not now): none.
+
+## Codex · 28 Oct (overnight Phase 4 / Phase 3)
+Done:
+- Implemented `packages/chain/src/ingestBase.ts`: Base mainnet USDC outgoing EIP-3009 transfers matched to `AuthorizationUsed` by transaction hash, ordinary inbound USDC transfers, lowercased unknown wallets, block timestamps, 500-block pagination, and retries. Added a recorded log fixture and the `ingest` CLI summary.
+- Implemented the official x402 Fetch client path, a Base Sepolia relayer HTTP service, `DeployRail.s.sol`, and the `release(address(0))` guard/test.
+- Isolated recorded-ledger fixture verification passed: `packages/chain/node_modules/.bin/vitest run test/ingestBase.test.ts` → 2 tests passed.
+
+Untested / blocked:
+- The x402 SDK and relayer dependencies are declared at exact versions, but could not be installed or linked. pnpm 12 fails every install attempt with `ERR_PNPM_STORE_DIR_OPEN_OPERATION_LOCK` / `Read-only file system`, including with `--store-dir=/tmp/glasshouse-pnpm-store`. Therefore `pnpm test` and `pnpm typecheck` are not green, x402/relayer tests have not run, and no commits were made (the task requires green gates at every commit).
+- Foundry is absent as instructed; `Rail.sol`, the new zero-address test, and deploy script have not been run with Forge.
+- The required real-wallet ingest example could not be completed. `https://mainnet.base.org` returned `request limit reached` for `eth_getLogs` even for a one-block USDC `AuthorizationUsed` query, so no payer or totals are claimed. No transaction was sent.
+
+Next (morning commands for Kalp):
+1. Install Foundry per the official guide: `curl -L https://foundry.paradigm.xyz | bash && foundryup` ([Foundry installation](https://www.getfoundry.sh/)).
+2. From the repo root, run `pnpm install --no-frozen-lockfile` to refresh the lockfile and link the declared dependencies, then `pnpm test && pnpm typecheck`.
+3. Run `forge test --root contracts`.
+4. Load the local testnet-only `.env` without printing it: `set -a; source .env; set +a`. Derive the relayer address with `export RELAYER_ADDRESS="$(cast wallet address --private-key "$RELAYER_PRIVATE_KEY")"`. Fund it with Base Sepolia ETH from a faucet, then verify the balance with `cast balance "$RELAYER_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"`. If sending from a separate testnet funder, use `cast send "$RELAYER_ADDRESS" --value 0.01ether --private-key "$FUNDER_PRIVATE_KEY" --rpc-url "$BASE_SEPOLIA_RPC_URL"`.
+5. Deploy from the repo root with `cd contracts && forge script script/DeployRail.s.sol:DeployRail --rpc-url "$BASE_SEPOLIA_RPC_URL" --broadcast`; copy the emitted Rail address into ignored `.env` as `RAIL_ADDRESS`.
+6. Obtain Base Sepolia USDC for a separate testnet funder, then seed the Rail pool: `cast send 0x036CbD53842c5426634e7929541eC2318f3dCF7e "approve(address,uint256)" "$RAIL_ADDRESS" 10000000 --private-key "$FUNDER_PRIVATE_KEY" --rpc-url "$BASE_SEPOLIA_RPC_URL"` followed by `cast send "$RAIL_ADDRESS" "deposit()" --private-key "$FUNDER_PRIVATE_KEY" --rpc-url "$BASE_SEPOLIA_RPC_URL"`.
+
+Blocked on / needs from others: writable pnpm store lock behavior; a non-rate-limited Base RPC or a later retry window; then repeat install, full tests/typecheck, Foundry tests, and real payer ingest before committing.
+Contract change request (if any): none.
+Later (ideas, not now): none.
+
+## Claude (integrator) · 28 Oct night, on Codex's overnight work
+- The pnpm store lock was Codex's sandbox (read-only store), not the repo. I installed outside the sandbox: all deps link.
+- Two test fixes in `packages/chain/test/x402.test.ts`:
+  - The mocked 402 asked for Base mainnet (`eip155:8453`), but `payX402` only registers Base Sepolia. That's correct (testnet only), so the test now uses `eip155:84532`.
+  - The SDK retries with a `Request` object, so the header check reads it from there.
+- Now green: `pnpm test` (engine 53, chain 7, tigergraph 15, relayer 2, web 9) and `pnpm typecheck`.
+- Still untested: Forge (Foundry not installed), the live Base ingest (public RPC rate-limited `eth_getLogs`), and any real transaction (relayer wallet unfunded).
