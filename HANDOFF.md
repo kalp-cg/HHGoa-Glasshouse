@@ -138,3 +138,18 @@ Gotcha (fixed): the package script was called `setup`, which collides with pnpm'
 Still pending: Antigravity (UI on live API, tx hash in UI), Codex (testnet export).
 
 Contract change request: none. (TG_SECRET is kept in the local `.env` only so the token can be refreshed; no code reads it.)
+
+## Codex · 28 Oct (Phase 1)
+Done:
+- Created branch `codex/phase-1` from `claude/phase-0` because `main` did not contain `packages/engine`.
+- Added `contracts/src/Rail.sol`, a mock-token Foundry test suite, and `contracts/foundry.toml`. Deposits request exactly 10 USDC (6 decimals), count unique depositors, and releases are relayer-only for exactly 1 USDC.
+- Implemented `newOneTimeWallet()` and EIP-191 `verifyOwnership()` with viem 2.57.2. Kept the Phase 3/4 chain functions as explicit stubs.
+- `pnpm install` completed; `pnpm --filter @glasshouse/chain test` (5 tests), `pnpm test` (82 tests), `pnpm typecheck`, and `git diff --check` passed.
+- `pnpm demo:check` passed Gates 0–3 checks except the Rail test, which failed because `forge` is not installed. Other later phase items remain PENDING as expected.
+
+Next:
+- Install Foundry after Kalp approves it, run `forge test --root contracts`, then rerun `pnpm demo:check` and confirm the Rail PASS. No Foundry install approval has been received yet.
+
+Blocked on / needs from others: Kalp: approve or decline Foundry installation, as required by AGENTS.md.
+Contract change request (if any): none.
+Later (ideas, not now): none.
