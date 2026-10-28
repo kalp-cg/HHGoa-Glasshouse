@@ -196,6 +196,9 @@ importers:
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
+      viasocket-apps:
+        specifier: 0.11.0
+        version: 0.11.0
     devDependencies:
       '@tailwindcss/postcss':
         specifier: 4.3.3
@@ -1321,6 +1324,11 @@ packages:
   undici-types@7.24.6:
     resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
+  viasocket-apps@0.11.0:
+    resolution: {integrity: sha512-R1GTc33UFacTKLgJzUTaVSbCK1SgmHDnbiuSWJxhka8qgwmbdcxF8SLq9V3gcNwh0zC6EdpVmt2Q2VWJwEU3Dw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   viem@2.57.2:
     resolution: {integrity: sha512-ZbPvu+5fvRsbFh+OymDz0GyEySsSco8GWrEAiHM4ckhEY1vJTPy0tcLVkn0cs70dPiUOjLxkQBnfVyt9YkJ7cA==}
     peerDependencies:
@@ -2216,6 +2224,8 @@ snapshots:
   typescript@5.9.3: {}
 
   undici-types@7.24.6: {}
+
+  viasocket-apps@0.11.0: {}
 
   viem@2.57.2(typescript@5.9.3):
     dependencies:

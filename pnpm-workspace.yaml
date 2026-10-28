@@ -4,3 +4,5 @@ packages:
   - services/*
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - viasocket-apps@0.11.0
