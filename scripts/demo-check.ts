@@ -18,6 +18,7 @@ const pending = (note: string): Check["run"] => () => ({ status: "PENDING", note
 
 function command(cmd: string, args: string[]): Result {
   const r = spawnSync(cmd, args, { cwd: root, encoding: "utf8" });
+  if (r.error) return { status: "FAIL", note: `${cmd} not runnable: ${r.error.message}` };
   if (r.status === 0) return { status: "PASS" };
   const tail = `${r.stdout}${r.stderr}`.trim().split("\n").slice(-3).join(" | ");
   return { status: "FAIL", note: tail };
