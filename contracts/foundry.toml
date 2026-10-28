@@ -1,0 +1,7 @@
+[profile.default]
+# Foundry configuration reference: https://getfoundry.sh/config/reference/overview
+src = "src"
+test = "test"
+out = "out"
+libs = []
+solc_version = "0.8.30"
