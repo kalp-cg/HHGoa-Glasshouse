@@ -52,7 +52,10 @@ export function Demo() {
     <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4 py-5">
         <a href="/" className="text-2xl font-bold tracking-tight">Glass<span className="text-accent">house</span></a>
-        <ModeSwitch mode={mode} onChange={setMode} />
+        <div className="flex flex-wrap items-center gap-4">
+          <a href="/audit" className="text-base font-semibold text-accent underline-offset-4 hover:underline">Audit your agent</a>
+          <ModeSwitch mode={mode} onChange={setMode} />
+        </div>
       </header>
 
       {load.state === "loading" && (

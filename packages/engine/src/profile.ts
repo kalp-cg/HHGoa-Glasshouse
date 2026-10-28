@@ -93,7 +93,9 @@ export function profile(ledger: Ledger, links: SameOwnerLink[], seed: Address, o
   const hourly = Array<number>(48).fill(0);
   for (const p of pays) hourly[Math.floor((p.ts % 86_400) / 1800)]! += 1;
 
-  const signals: Signal[] = [...Map.groupBy(pays, (p) => info.get(p.to)!.category as Category)]
+  // services of unknown category (real-chain x402 sellers) count as payments but give no signal
+  const categorized = pays.filter((p) => info.get(p.to)?.category != null);
+  const signals: Signal[] = [...Map.groupBy(categorized, (p) => info.get(p.to)!.category as Category)]
     .filter(([c, ps]) => ps.length >= SIGNAL_RULES[c].min)
     .map(([category, ps]) => ({
       category,

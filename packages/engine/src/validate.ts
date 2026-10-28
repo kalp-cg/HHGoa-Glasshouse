@@ -31,7 +31,8 @@ function checkLinks(p: Problems, links: unknown, at: string) {
 export function validateLedger(v: unknown): Problems {
   const p: Problems = [];
   if (!isObj(v)) return ["ledger must be an object"];
-  check(p, isInt(v.seed) && isInt(v.start_ts) && isInt(v.days), "seed/start_ts/days must be integers");
+  check(p, isInt(v.seed) && isInt(v.start_ts), "seed/start_ts must be integers");
+  check(p, isNum(v.days) && (v.days as number) >= 0, "days must be a non-negative number");
   if (!Array.isArray(v.wallets)) return [...p, "wallets must be an array"];
   if (!Array.isArray(v.transfers)) return [...p, "transfers must be an array"];
   const known = new Set<unknown>();
@@ -40,8 +41,9 @@ export function validateLedger(v: unknown): Problems {
     check(p, isAddr(w.addr), `wallets[${i}].addr invalid`);
     check(p, WALLET_KINDS.includes(w.kind as string), `wallets[${i}].kind invalid`);
     check(p, isStr(w.label), `wallets[${i}].label must be a string`);
-    check(p, w.kind === "service" ? CATEGORIES.includes(w.category as string) : w.category === null,
-      `wallets[${i}].category must be a category for services, null otherwise`);
+    // a service's category may be unknown (null), e.g. a real-chain x402 seller
+    check(p, w.category === null || (w.kind === "service" && CATEGORIES.includes(w.category as string)),
+      `wallets[${i}].category must be null, or a category on a service`);
     check(p, !known.has(w.addr), `wallets[${i}].addr duplicated`);
     known.add(w.addr);
   });

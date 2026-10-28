@@ -63,6 +63,23 @@ function testnetPayment(): Result {
   return { status: "PASS", note: `${pays.length} payment(s), e.g. tx ${pays[0]!.tx}` };
 }
 
+// The Playwright smoke runs the same assertions on the live API and on ?fixtures=1, with OFFLINE_MODE=true;
+// several gates read its one result.
+let playwrightResult: Result | undefined;
+function playwright(): Result {
+  return (playwrightResult ??= whenExists("apps/web/playwright.config.ts", "UI", "pnpm", ["--filter", "@glasshouse/web", "exec", "playwright", "test"])());
+}
+
+// Real signatures against the audit routes (apps/web/app/api/_tests/phase4.test.ts)
+let phase4Result: Result | undefined;
+function phase4(): Result {
+  return (phase4Result ??= command("pnpm", ["--filter", "@glasshouse/web", "exec", "vitest", "run", "app/api/_tests/phase4.test.ts"]));
+}
+
+const dodo = (): Result => process.env.DODO_API_KEY && process.env.DODO_PRODUCT_ID
+  ? { status: "PENDING", note: "keys set; open /api/checkout on the deployed site to confirm" }
+  : { status: "PENDING", note: "DODO_API_KEY / DODO_PRODUCT_ID not set in .env" };
+
 function engineSeed42(): Result {
   const open = simulate(42, "open");
   const p = profile(open.ledger, analyze(open.ledger), open.you.personal, { mode: "open" });
@@ -123,7 +140,7 @@ const gates: { name: string; checks: Check[] }[] = [
       { name: "zero false links on seeds 1–4 (open and shield)", run: noFalseLinks },
       {
         name: "UI renders both fixtures, no console errors (Playwright)",
-        run: whenExists("apps/web/playwright.config.ts", "Antigravity", "pnpm", ["--filter", "@glasshouse/web", "exec", "playwright", "test"]),
+        run: playwright,
       },
       { name: "Rail contract tests green (forge test)", run: whenExists("contracts/foundry.toml", "Codex", "forge", ["test", "--root", "contracts"]) },
     ],
@@ -133,7 +150,7 @@ const gates: { name: string; checks: Check[] }[] = [
     checks: [
       { name: "pnpm test:parity: TigerGraph == engine on seed 42", run: parity },
       { name: "API returns valid ProfileFacts (route tests, offline)", run: () => command("pnpm", ["--filter", "@glasshouse/web", "test"]) },
-      { name: "UI on live API, no visual change", run: pending("Antigravity Phase 2") },
+      { name: "UI on live API, no visual change (same smoke on API and ?fixtures=1)", run: playwright },
     ],
   },
   {
@@ -141,22 +158,22 @@ const gates: { name: string; checks: Check[] }[] = [
     checks: [
       { name: "shield: 0/238 traced via the same queries (TigerGraph)", run: shieldViaTigerGraph },
       { name: "real testnet x402 payment from a one-time wallet, 0 links", run: testnetPayment },
-      { name: "tx hash shown in the UI", run: pending("Antigravity Phase 3") },
+      { name: "tx hash shown in the UI", run: pending("needs a funded relayer + RAIL_ADDRESS, then the Shield session UI") },
     ],
   },
   {
     name: "Gate 4 · Live with real users",
     checks: [
-      { name: "public URL deployed", run: pending("Phase 4") },
-      { name: "own wallet audits; foreign wallet gets 401", run: pending("Phase 4") },
-      { name: "usage counter increments", run: pending("Phase 4") },
-      { name: "Dodo checkout opens (test mode)", run: pending("Phase 4") },
+      { name: "public URL deployed", run: pending("needs a Vercel login (VERCEL_TOKEN)") },
+      { name: "own wallet audits; foreign wallet gets 401 (real signatures, route tests)", run: phase4 },
+      { name: "usage counter increments, totals only", run: phase4 },
+      { name: "Dodo checkout opens (test mode)", run: dodo },
     ],
   },
   {
     name: "Gate 5 · Demo hardening",
     checks: [
-      { name: "OFFLINE_MODE demo end to end", run: pending("Phase 5") },
+      { name: "OFFLINE_MODE demo end to end (Playwright runs with OFFLINE_MODE=true)", run: playwright },
     ],
   },
 ];

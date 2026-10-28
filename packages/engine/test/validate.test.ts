@@ -25,8 +25,11 @@ describe("validators", () => {
   it("reject malformed values", () => {
     expect(validateLedger({ seed: 1, start_ts: 0, days: 1, wallets: [], transfers: [{ tx: "0x1", from: A, to: B, amount: 1, ts: 0 }] }))
       .toContain("transfers[0] from/to must be listed wallets");
-    expect(validateLedger({ seed: 1, start_ts: 0, days: 1, wallets: [{ addr: A, kind: "service", label: "", category: null }], transfers: [] }))
+    expect(validateLedger({ seed: 1, start_ts: 0, days: 1, wallets: [{ addr: A, kind: "", label: "", category: "Health" }], transfers: [] }))
       .toHaveLength(1);
+    // unknown category on a service is allowed (real-chain sellers)
+    expect(validateLedger({ seed: 1, start_ts: 0, days: 1.5, wallets: [{ addr: A, kind: "service", label: "", category: null }], transfers: [] }))
+      .toEqual([]);
     expect(validateGroundTruth({ owners: { you: ["nope"] } })).toHaveLength(1);
     expect(validateProfileFacts({ ...profile, hourly: [1, 2] })).toContain("hourly must be 48 integers");
     expect(validateProfileFacts({ ...profile, linkability: { traced: 3, total: 2 } })).toContain("linkability invalid");

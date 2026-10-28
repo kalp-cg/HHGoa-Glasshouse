@@ -35,7 +35,7 @@ export interface WalletInfo {
   addr: Address;
   kind: WalletKind;          // "" = unknown/unlabelled
   label: string;             // e.g. "Exchange A", "SymptomCheck API"; "" if unknown
-  category: Category | null; // only for kind === "service"
+  category: Category | null; // only for kind === "service"; null on a service = unknown category (real-chain x402 seller)
 }
 
 export interface Transfer {
@@ -49,7 +49,7 @@ export interface Transfer {
 export interface Ledger {
   seed: number;
   start_ts: number;
-  days: number;
+  days: number;              // may be fractional for a real-chain block range
   wallets: WalletInfo[];
   transfers: Transfer[];
 }
@@ -127,7 +127,7 @@ export interface GraphView {
 | `POST /api/audit/challenge` | `{ address }` | `{ message: string, nonce: string, expires_at: number }` |
 | `POST /api/audit` | `{ address, signature, nonce }` | `ProfileFacts` (source "base-mainnet") or `401` if signature invalid |
 | `GET /api/stats` | | `{ audits: number, leaking_timezone: number }` (totals only) |
-| `POST /api/shield/session` | `{ owner_hint?: string }` | `{ wallet: Address, funded_tx: string }` |
+| `POST /api/shield/session` | `{ owner_hint?: string }` | `{ wallet: Address, funded_tx: string, payment_tx?: string }` |
 | `POST /api/checkout` | `{ plan: "pro-audit" }` | `{ url: string }` (Dodo checkout) |
 
 All errors: `{ error: string }` with a proper HTTP status. The demo person's wallet is `fixtures/profile.open.json -> seed_wallet`.
@@ -150,6 +150,25 @@ TG_HOST=  TG_TOKEN=  TG_GRAPH=Glasshouse
 ANTHROPIC_API_KEY=
 BASE_RPC_URL=  BASE_SEPOLIA_RPC_URL=
 RAIL_ADDRESS=  RELAYER_PRIVATE_KEY=     # testnet only, never mainnet
-DODO_API_KEY=  VIASOCKET_WEBHOOK_URL=
+DODO_API_KEY=  VIASOCKET_WEBHOOK_URL=   # VIASOCKET_WEBHOOK_URL is superseded by per-user alerts (§7)
 OFFLINE_MODE=false                      # true = API uses packages/engine instead of TigerGraph
 ```
+
+## 7. Changes approved by Kalp (28 Oct, night)
+
+- `POST /api/shield/session` may return `payment_tx`: one x402 test payment made from the new one-time wallet
+  when `X402_TEST_URL` is set. The relayer is reached at `RELAYER_URL` (`POST /release { to } → { tx }`).
+- `POST /api/audit` also sets an HttpOnly `gh_session` cookie (1 h) for the verified wallet; the alert routes require it.
+- Leak alerts are per user through viaSocket (the user's own Telegram), replacing the single `VIASOCKET_WEBHOOK_URL`:
+
+| Route | Request | Response |
+|---|---|---|
+| `GET /api/viasocket/token?apps=telegram` | | `{ token, serviceIds }` for the Connect popup |
+| `GET /api/viasocket/connected` | | `{ connected: boolean, chat: string \| null }` |
+| `POST /api/viasocket/connected` | `{ authId }` | same as GET |
+| `DELETE /api/viasocket/connected` | | same as GET (alerts off, connection revoked) |
+| `GET /api/viasocket/chats` | | `{ value, label }[]` (chats that messaged the user's bot) |
+| `POST /api/viasocket/chat` | `{ chat }` (a `value` from the list) | `{ value, label }` |
+
+- New `.env` keys: `SESSION_SECRET`, `DODO_PRODUCT_ID`, `DODO_MODE`, `RELAYER_URL`, `X402_TEST_URL`, `AUDIT_DAYS`,
+  `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VIASOCKET_ORG_ID`, `VIASOCKET_PROJECT_ID`, `VIASOCKET_EMBED_SECRET`.

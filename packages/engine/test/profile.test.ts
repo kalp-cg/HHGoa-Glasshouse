@@ -77,6 +77,15 @@ describe("profile (Gate 1, seed 42)", () => {
     expect(p.anonymity_set).toBeGreaterThan(100);
   });
 
+  it("payments to services of unknown category count, but give no signal", () => {
+    const { ledger, you } = simulate(42, "open");
+    const blind = { ...ledger, wallets: ledger.wallets.map((w) => (w.kind === "service" ? { ...w, category: null } : w)) };
+    const p = profile(blind, analyze(blind), you.personal, { mode: "open" });
+    expect(p.linkability).toEqual({ traced: 238, total: 238 });
+    expect(p.signals).toEqual([]);
+    expect(p.timezone?.offset_minutes).toBe(330);
+  });
+
   it("a one-time wallet as seed links to nothing", () => {
     const { ledger, you } = simulate(42, "shield");
     const p = profile(ledger, analyze(ledger), you.agents[0]!, { mode: "shield" });

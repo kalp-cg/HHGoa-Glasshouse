@@ -19,6 +19,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     timeout: 240_000,
     reuseExistingServer: false,
-    env: { OFFLINE_MODE: "true" },
+    env: { OFFLINE_MODE: "true", GLASSHOUSE_STORE_FILE: "test-results/e2e-store.json" },
   },
 });

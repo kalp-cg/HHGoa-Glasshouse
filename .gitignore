@@ -14,3 +14,4 @@ contracts/cache/
 contracts/broadcast/
 apps/web/test-results/
 apps/web/playwright-report/
+apps/web/.data/
