@@ -1,6 +1,7 @@
 // `pnpm test:parity`: load seed 42 (open and shield) into TigerGraph, run the GSQL queries,
 // and require exactly the engine's answers: same SAME_OWNER links, same person behind the seed.
 // Gate 3: with TigerGraph's links, Shield mode traces 0 of 238 and reports a crowd.
+// --no-load: skip uploading (the data from an earlier run is still in TigerGraph).
 import { analyze, cluster, profile, simulate } from "@glasshouse/engine";
 import { configFromEnv, createClient, loadLedger, normalizeLinks, tgLinks, tgMembers, writeSameOwner } from "../src/index";
 
@@ -9,12 +10,13 @@ if (!cfg) {
   console.error("TG_HOST and TG_TOKEN must be set in .env (run `pnpm tg:setup` first)");
   process.exit(1);
 }
-const client = createClient({ ...cfg, timeoutMs: 120_000 });
+const client = createClient({ ...cfg, timeoutMs: 120_000, retries: 5 });
+const noLoad = process.argv.includes("--no-load");
 let ok = true;
 
 for (const mode of ["open", "shield"] as const) {
   const { ledger, you } = simulate(42, mode);
-  const batches = await loadLedger(client, ledger, mode);
+  const batches = noLoad ? 0 : await loadLedger(client, ledger, mode);
   const tg = await tgLinks(client, ledger, mode);
   await writeSameOwner(client, mode, tg);
   const engine = analyze(ledger);
@@ -26,7 +28,7 @@ for (const mode of ["open", "shield"] as const) {
   const linksMatch = onlyEngine.length === 0 && onlyTg.length === 0;
   const membersMatch = JSON.stringify(membersTg) === JSON.stringify(membersEngine);
 
-  console.log(`${mode}: loaded in ${batches} batches; links engine=${a.length} tigergraph=${b.length}; person: ${membersEngine.length} wallets`);
+  console.log(`${mode}: ${noLoad ? "already loaded" : `loaded in ${batches} batches`}; links engine=${a.length} tigergraph=${b.length}; person: ${membersEngine.length} wallets`);
   console.log(`  ${linksMatch ? "PASS" : "FAIL"} links identical`);
   for (const x of onlyEngine.slice(0, 5)) console.log(`    only engine:     ${x}`);
   for (const x of onlyTg.slice(0, 5)) console.log(`    only tigergraph: ${x}`);

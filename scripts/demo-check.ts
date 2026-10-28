@@ -33,7 +33,8 @@ function parity(): Result {
   if (!process.env.TG_HOST?.trim() || !process.env.TG_TOKEN?.trim()) {
     return { status: "PENDING", note: "TG_HOST / TG_TOKEN not set in .env" };
   }
-  return (parityResult ??= command("pnpm", ["test:parity"]));
+  // data stays in TigerGraph between runs; `pnpm test:parity` (without --no-load) reloads it
+  return (parityResult ??= command("pnpm", ["test:parity", "--no-load"]));
 }
 
 function shieldViaTigerGraph(): Result {

@@ -12,7 +12,7 @@ const client = createClient({ ...cfg, timeoutMs: 600_000 });
 const root = join(import.meta.dirname, "..");
 const withGraph = (gsql: string) => gsql.replaceAll("Glasshouse", cfg.graph);
 // GSQL reports most failures inside a 200 response, as text
-const failed = (out: string) => /(fail|error|exception|not exist)/i.test(out) && !/already (exist|used)/i.test(out);
+const failed = (out: string) => /(Semantic Check Fail|Syntax Error|Failed to|failed: [1-9]|exception|does not exist)/i.test(out);
 
 const run = async (label: string, gsql: string) => {
   const out = await client.statements(gsql);
@@ -20,7 +20,9 @@ const run = async (label: string, gsql: string) => {
   if (failed(out)) throw new Error(`${label} failed`);
 };
 
-await run("schema", withGraph(readFileSync(join(root, "schema.gsql"), "utf8")));
+const graphExists = (await client.statements(`USE GRAPH ${cfg.graph}`)).includes(`Using graph '${cfg.graph}'`);
+if (graphExists) console.log(`--- schema\ngraph ${cfg.graph} already exists, keeping it`);
+else await run("schema", withGraph(readFileSync(join(root, "schema.gsql"), "utf8")));
 const queries = readdirSync(join(root, "queries")).filter((f) => f.endsWith(".gsql")).sort();
 for (const file of queries) {
   const text = withGraph(readFileSync(join(root, "queries", file), "utf8")).replace("CREATE QUERY", "CREATE OR REPLACE QUERY");

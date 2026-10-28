@@ -12,7 +12,7 @@
     "fixtures": "pnpm --filter @glasshouse/engine fixtures",
     "demo:check": "tsx scripts/demo-check.ts",
     "test:parity": "pnpm --filter @glasshouse/tigergraph parity",
-    "tg:setup": "pnpm --filter @glasshouse/tigergraph setup",
+    "tg:setup": "pnpm --filter @glasshouse/tigergraph tg:setup",
     "analyze:ledger": "pnpm --filter @glasshouse/engine analyze:ledger"
   },
   "devDependencies": {

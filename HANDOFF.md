@@ -120,3 +120,21 @@ Contract change request (for Kalp, before anyone builds `/api/shield/session`):
 - For the live demo payment: the one-time key must stay in memory on the server, so the payment has to happen server-side. Proposal: `POST /api/shield/session` creates the wallet (`newOneTimeWallet`), asks the relayer to fund it, optionally pays one x402 test call with `payX402`, then drops the key. Response: `{ wallet, funded_tx, payment_tx? }`, where `payment_tx` is a new optional field.
 
 Later (ideas, not now): none.
+
+## Claude · 28 Oct (TigerGraph live)
+Done:
+- Savanna workspace connected (TigerGraph 4.2.5). `.env` is now in the repo root (git-ignored). `TG_TOKEN` is valid until 4 Nov 2026, past the deadline.
+- `pnpm tg:setup`: schema created and all 3 queries installed. The GSQL compiled first time.
+- **`pnpm test:parity` PASS on live TigerGraph:**
+  - open: 151 = 151 links, owner walk = engine.
+  - shield: 148 = 148 links, owner walk = engine, **0/238 traced, crowd of 221**.
+- The API served through TigerGraph (`x-glasshouse-links: tigergraph`) returns the same open profile as `fixtures/profile.open.json`, and the same graph nodes and edges as `fixtures/graph.open.json`.
+- Client robustness for venue Wi-Fi: network failures are retried; 429/499/502/503/504 are retried for upserts and query reads only.
+- `demo:check` runs `test:parity --no-load` (about 14 s). Plain `pnpm test:parity` re-uploads both ledgers, about 10 min on this Wi-Fi.
+- Gate 2 parity: PASS. Gate 3 TigerGraph shield: PASS.
+
+Gotcha (fixed): the package script was called `setup`, which collides with pnpm's built-in `pnpm setup`. It ran pnpm's global installer instead of our script, and appended a PNPM_HOME block to ~/.zshrc. The script is now `tg:setup`. **Kalp:** remove that block from ~/.zshrc if you don't want it.
+
+Still pending: Antigravity (UI on live API, tx hash in UI), Codex (testnet export).
+
+Contract change request: none. (TG_SECRET is kept in the local `.env` only so the token can be refreshed; no code reads it.)

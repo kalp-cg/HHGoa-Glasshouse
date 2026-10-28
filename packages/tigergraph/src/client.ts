@@ -10,9 +10,13 @@ export interface TgConfig {
   token: string;
   graph: string;
   timeoutMs?: number;
+  retries?: number;      // total attempts on network failure (default 3)
+  retryDelayMs?: number; // grows linearly per attempt (default 1000)
 }
 
 export class TgError extends Error {}
+
+const RETRY_STATUS = new Set([429, 499, 502, 503, 504]);
 
 export type QueryParams = Record<string, string | number>;
 
@@ -35,12 +39,28 @@ export function configFromEnv(env: Record<string, string | undefined> = process.
 }
 
 export function createClient(cfg: TgConfig, fetchImpl: typeof fetch = fetch): TgClient {
-  const request = async (path: string, init: RequestInit): Promise<string> => {
-    const res = await fetchImpl(`${cfg.host}${path}`, {
-      ...init,
-      headers: { Authorization: `Bearer ${cfg.token}`, ...init.headers },
-      signal: AbortSignal.timeout(cfg.timeoutMs ?? 30_000),
-    });
+  // Network failures (fetch throws TypeError) are always retried. Gateway timeouts and overload
+  // (429/499/502/503/504) are retried only for idempotent calls (upserts, query reads).
+  const send = async (path: string, init: RequestInit, idempotent: boolean): Promise<Response> => {
+    const attempts = cfg.retries ?? 3;
+    for (let i = 1; ; i++) {
+      const wait = () => new Promise((r) => setTimeout(r, (cfg.retryDelayMs ?? 1000) * i));
+      try {
+        const res = await fetchImpl(`${cfg.host}${path}`, {
+          ...init,
+          headers: { Authorization: `Bearer ${cfg.token}`, ...init.headers },
+          signal: AbortSignal.timeout(cfg.timeoutMs ?? 30_000),
+        });
+        if (!idempotent || !RETRY_STATUS.has(res.status) || i >= attempts) return res;
+        await res.body?.cancel();
+      } catch (err) {
+        if (!(err instanceof TypeError) || i >= attempts) throw err;
+      }
+      await wait();
+    }
+  };
+  const request = async (path: string, init: RequestInit, idempotent = false): Promise<string> => {
+    const res = await send(path, init, idempotent);
     const text = await res.text();
     if (!res.ok) throw new TgError(`TigerGraph ${res.status} on ${path}: ${text.slice(0, 300)}`);
     return text;
@@ -63,12 +83,12 @@ export function createClient(cfg: TgConfig, fetchImpl: typeof fetch = fetch): Tg
       request("/gsql/v1/statements", { method: "POST", headers: { "Content-Type": "text/plain" }, body: gsql }),
     upsert: async (payload) => {
       const path = `/restpp/graph/${cfg.graph}`;
-      return json(await request(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }), path);
+      return json(await request(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, true), path);
     },
     runQuery: async (name, params) => {
       const qs = new URLSearchParams(Object.entries(params).map(([k, v]): [string, string] => [k, String(v)]));
       const path = `/restpp/query/${cfg.graph}/${name}?${qs}`;
-      const body = json(await request(path, { method: "GET" }), path);
+      const body = json(await request(path, { method: "GET" }, true), path);
       if (!Array.isArray(body.results)) throw new TgError(`TigerGraph query ${name} returned no results array`);
       return body.results;
     },

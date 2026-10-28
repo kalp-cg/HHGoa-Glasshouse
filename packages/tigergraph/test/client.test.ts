@@ -39,6 +39,35 @@ describe("createClient", () => {
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok");
   });
 
+  it("retries network failures, then gives up; never retries HTTP errors", async () => {
+    let calls = 0;
+    const flaky = vi.fn(async () => {
+      calls++;
+      if (calls < 3) throw new TypeError("fetch failed");
+      return new Response(JSON.stringify({ results: [] }));
+    });
+    expect(await createClient({ ...cfg, retryDelayMs: 1 }, flaky).runQuery("q", {})).toEqual([]);
+    expect(calls).toBe(3);
+
+    const down = vi.fn(async () => { throw new TypeError("fetch failed"); });
+    await expect(createClient({ ...cfg, retryDelayMs: 1, retries: 2 }, down).runQuery("q", {})).rejects.toThrow("fetch failed");
+    expect(down).toHaveBeenCalledTimes(2);
+
+    const http = fakeFetch({ "/restpp": { status: 500, body: "boom" } });
+    await expect(createClient({ ...cfg, retryDelayMs: 1 }, http).runQuery("q", {})).rejects.toThrow(TgError);
+    expect(http).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries 499/5xx gateway errors for upserts and reads, but not for GSQL statements", async () => {
+    const gateway = () => fakeFetch({ "/": { status: 499, body: "Client Closed Request" } });
+    const up = gateway();
+    await expect(createClient({ ...cfg, retryDelayMs: 1 }, up).upsert({})).rejects.toThrow("499");
+    expect(up).toHaveBeenCalledTimes(3);
+    const st = gateway();
+    await expect(createClient({ ...cfg, retryDelayMs: 1 }, st).statements("ls")).rejects.toThrow("499");
+    expect(st).toHaveBeenCalledTimes(1);
+  });
+
   it("throws TgError on HTTP errors and on error: true", async () => {
     await expect(createClient(cfg, fakeFetch({ "/restpp": { status: 401, body: "nope" } })).runQuery("q", {})).rejects.toThrow(TgError);
     await expect(createClient(cfg, fakeFetch({ "/restpp": { body: { error: true, message: "bad" } } })).runQuery("q", {})).rejects.toThrow("bad");

@@ -3,12 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "setup": "node --env-file-if-exists=../../.env --import tsx scripts/setup.ts",
-    "parity": "node --env-file-if-exists=../../.env --import tsx scripts/parity.ts"
+    "parity": "node --env-file-if-exists=../../.env --import tsx scripts/parity.ts",
+    "tg:setup": "node --env-file-if-exists=../../.env --import tsx scripts/setup.ts"
   },
   "dependencies": {
     "@glasshouse/engine": "workspace:*"
