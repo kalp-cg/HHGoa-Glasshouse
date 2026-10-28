@@ -1,6 +1,7 @@
 // `pnpm test:parity`: load seed 42 (open and shield) into TigerGraph, run the GSQL queries,
 // and require exactly the engine's answers: same SAME_OWNER links, same person behind the seed.
-import { analyze, cluster, simulate } from "@glasshouse/engine";
+// Gate 3: with TigerGraph's links, Shield mode traces 0 of 238 and reports a crowd.
+import { analyze, cluster, profile, simulate } from "@glasshouse/engine";
 import { configFromEnv, createClient, loadLedger, normalizeLinks, tgLinks, tgMembers, writeSameOwner } from "../src/index";
 
 const cfg = configFromEnv();
@@ -31,5 +32,12 @@ for (const mode of ["open", "shield"] as const) {
   for (const x of onlyTg.slice(0, 5)) console.log(`    only tigergraph: ${x}`);
   console.log(`  ${membersMatch ? "PASS" : "FAIL"} owner_profile walk == engine cluster`);
   ok &&= linksMatch && membersMatch;
+
+  if (mode === "shield") {
+    const facts = profile(ledger, tg, you.personal, { mode, ownWallets: you.agents });
+    const gate3 = facts.linkability.traced === 0 && facts.linkability.total === 238 && (facts.anonymity_set ?? 0) > 0;
+    console.log(`  ${gate3 ? "PASS" : "FAIL"} shield via TigerGraph: ${facts.linkability.traced}/${facts.linkability.total} traced, crowd of ${facts.anonymity_set}`);
+    ok &&= gate3;
+  }
 }
 process.exit(ok ? 0 : 1);

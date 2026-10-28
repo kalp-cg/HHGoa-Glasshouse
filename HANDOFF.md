@@ -91,3 +91,32 @@ Decisions made under ambiguity:
 Contract change request (if any): none.
 
 Later (ideas, not now): none.
+
+## Claude · 28 Oct (Phase 3)
+Done:
+- Shield data uses the exact same code path: `analyze` has no mode, and TigerGraph runs the same three queries on the `shield:` half of the graph.
+- `pnpm test:parity` now also asserts Gate 3 with TigerGraph's links: shield → 0/238 traced, crowd > 0.
+- Engine `oneTimePayments(ledger)`: payments from wallets funded only by a pool (tests only, not linking).
+- `pnpm analyze:ledger <ledger.json> <seed> [own,...]` runs any Ledger through analyze + profile and prints a summary. Use it on real testnet exports.
+- `demo:check` Gate 3 has three checks:
+  - Shield via TigerGraph: runs with parity. The engine already gives 0/238, crowd of 221.
+  - Real testnet export: reads `packages/chain/exports/testnet.shield.json`. It must be a valid Ledger with ≥1 payment from a rail-funded wallet, and no link may touch a one-time wallet.
+  - UI tx hash: PENDING for Antigravity.
+- 53 engine tests green.
+
+Next: Gate 2/3 parity on live TigerGraph once creds are fixed; then Phase 4 (audit, stats, checkout, viaSocket).
+
+Blocked on / needs from others:
+- **Kalp:** TigerGraph creds (see the Phase 2 entry). Gate 2 and Gate 3 both wait on `pnpm test:parity`.
+- **Codex (Phase 3 export):** write your real Base Sepolia transfers to `packages/chain/exports/testnet.shield.json` as a `Ledger`:
+  - Label the Rail contract `kind: "pool"`.
+  - Label the x402 test endpoint's pay-to address `kind: "service"` with a `category`.
+  - Leave the depositor and one-time wallets unlabelled (`kind: ""`).
+  - Check it with `pnpm analyze:ledger packages/chain/exports/testnet.shield.json <depositor> <one-time,...>`, then record the tx hash here.
+- **Antigravity:** Gate 3 wants the real testnet tx hash in the UI. It will come from `/api/shield/session` (`funded_tx`) once the relayer exists. Until then, the Shield view can link to the hash Codex records here.
+
+Contract change request (for Kalp, before anyone builds `/api/shield/session`):
+- The route needs to reach Codex's relayer, but there's no relayer address in CONTRACTS §6. Proposal: add `RELAYER_URL`; the relayer exposes `POST /release { to } → { tx }`.
+- For the live demo payment: the one-time key must stay in memory on the server, so the payment has to happen server-side. Proposal: `POST /api/shield/session` creates the wallet (`newOneTimeWallet`), asks the relayer to fund it, optionally pays one x402 test call with `payX402`, then drops the key. Response: `{ wallet, funded_tx, payment_tx? }`, where `payment_tx` is a new optional field.
+
+Later (ideas, not now): none.

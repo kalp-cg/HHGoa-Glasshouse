@@ -9,7 +9,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "fixtures": "tsx scripts/build-fixtures.ts"
+    "fixtures": "tsx scripts/build-fixtures.ts",
+    "analyze:ledger": "tsx scripts/analyze-ledger.ts"
   },
   "devDependencies": {
     "vite": "8.3.5",

@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  analyze, profile, simulate, validateGraphView, validateGroundTruth, validateLedger, validateProfileFacts,
+  analyze, oneTimePayments, profile, simulate, validateGraphView, validateGroundTruth, validateLedger, validateProfileFacts,
 } from "../packages/engine/src/index";
 
 type Status = "PASS" | "FAIL" | "PENDING";
@@ -27,11 +27,38 @@ function command(cmd: string, args: string[]): Result {
 const whenExists = (file: string, owner: string, cmd: string, args: string[]): Check["run"] => () =>
   existsSync(join(root, file)) ? command(cmd, args) : { status: "PENDING", note: `${owner}: ${file} not there yet` };
 
+// parity also asserts Gate 3 (shield 0/238 via TigerGraph); run it once per demo:check
+let parityResult: Result | undefined;
 function parity(): Result {
   if (!process.env.TG_HOST?.trim() || !process.env.TG_TOKEN?.trim()) {
     return { status: "PENDING", note: "TG_HOST / TG_TOKEN not set in .env" };
   }
-  return command("pnpm", ["test:parity"]);
+  return (parityResult ??= command("pnpm", ["test:parity"]));
+}
+
+function shieldViaTigerGraph(): Result {
+  const { ledger, you } = simulate(42, "shield");
+  const p = profile(ledger, analyze(ledger), you.personal, { mode: "shield", ownWallets: you.agents });
+  const engine = `engine: ${p.linkability.traced}/${p.linkability.total}, crowd of ${p.anonymity_set}`;
+  const tg = parity();
+  return { status: tg.status, note: tg.status === "PENDING" ? `${engine}; TigerGraph: ${tg.note}` : engine };
+}
+
+// Codex exports real Base Sepolia one-time-wallet payments here (see HANDOFF.md, Phase 3)
+const TESTNET_EXPORT = "packages/chain/exports/testnet.shield.json";
+function testnetPayment(): Result {
+  const path = join(root, TESTNET_EXPORT);
+  if (!existsSync(path)) return { status: "PENDING", note: `Codex: ${TESTNET_EXPORT} not there yet` };
+  const ledger: unknown = JSON.parse(readFileSync(path, "utf8"));
+  const problems = validateLedger(ledger);
+  if (problems.length) return { status: "FAIL", note: `not a valid Ledger: ${problems[0]}` };
+  const l = ledger as Parameters<typeof oneTimePayments>[0];
+  const pays = oneTimePayments(l);
+  if (pays.length === 0) return { status: "FAIL", note: "no payment from a rail-funded one-time wallet" };
+  const oneTime = new Set(pays.map((t) => t.from));
+  const linked = analyze(l).filter((k) => oneTime.has(k.a) || oneTime.has(k.b)).length;
+  if (linked > 0) return { status: "FAIL", note: `analysis linked a one-time wallet ${linked} time(s)` };
+  return { status: "PASS", note: `${pays.length} payment(s), e.g. tx ${pays[0]!.tx}` };
 }
 
 function engineSeed42(): Result {
@@ -110,8 +137,9 @@ const gates: { name: string; checks: Check[] }[] = [
   {
     name: "Gate 3 · The fix works",
     checks: [
-      { name: "shield: 0/238 traced via the same queries", run: pending("Phase 3") },
-      { name: "real testnet x402 payment from a one-time wallet", run: pending("Codex Phase 3") },
+      { name: "shield: 0/238 traced via the same queries (TigerGraph)", run: shieldViaTigerGraph },
+      { name: "real testnet x402 payment from a one-time wallet, 0 links", run: testnetPayment },
+      { name: "tx hash shown in the UI", run: pending("Antigravity Phase 3") },
     ],
   },
   {
