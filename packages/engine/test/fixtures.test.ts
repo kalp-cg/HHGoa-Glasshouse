@@ -2,6 +2,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { analyze } from "../src/analyze";
+import { graphView } from "../src/graphView";
+import { profile } from "../src/profile";
 import { simulate } from "../src/simulate";
 import { validateGraphView, validateGroundTruth, validateLedger, validateProfileFacts } from "../src/validate";
 import type { GraphView, ProfileFacts } from "../src/types";
@@ -28,6 +31,16 @@ describe("fixtures", () => {
     expect(load("ledger.seed42.shield.json")).toEqual(shield.ledger);
     expect(load("truth.seed42.json")).toEqual(open.truth);
     expect(load("truth.seed42.shield.json")).toEqual(shield.truth);
+  });
+
+  it("profiles and graphs are what the engine produces (run `pnpm fixtures` if this fails)", () => {
+    for (const mode of ["open", "shield"] as const) {
+      const sim = simulate(42, mode);
+      const own = mode === "shield" ? sim.you.agents : [];
+      const facts = profile(sim.ledger, analyze(sim.ledger), sim.you.personal, { mode, ownWallets: own });
+      expect(load(`profile.${mode}.json`)).toEqual(facts);
+      expect(load(`graph.${mode}.json`)).toEqual(graphView(sim.ledger, facts, own));
+    }
   });
 
   it("profiles carry the demo numbers", () => {

@@ -37,3 +37,23 @@ Decisions made under ambiguity (simplest option that satisfies CONTRACTS):
 Contract change request (if any): none.
 
 Later (ideas, not now): none.
+
+## Claude · 28 Oct (Phase 1)
+Done:
+- `packages/engine/src/analyze.ts`: Rule 1 (`linkFunding`) and Rule 2 (`linkCoactivity`) exactly per CONTRACTS §3, plus `analyze()` = both. No mode parameter; shield and open go through identical code.
+  - Rule 2 counts "observed" as payment pairs (one from each wallet) within 90 s; span = the ledger window (`days × 86400`).
+- `profile.ts`: `cluster` (walks SAME_OWNER from the seed), `inferTimezone` (48-slot method, snaps to real offsets), `profile()` → `ProfileFacts`.
+- `graphView.ts`: `GraphView` around the profile, < 300 nodes.
+- Fixtures are now produced by the engine (`pnpm fixtures`). They came out byte-identical to the Phase 0 ground-truth versions, so **Antigravity: nothing changed under you.**
+- Gate 1 engine checks are live in `pnpm demo:check`: seed 42 → 4 wallets, UTC+05:30, 5 signals, 238/238; zero false links on seeds 1–4 in both modes. 50 tests green.
+- demo:check runs Playwright and `forge test` automatically once `apps/web/playwright.config.ts` / `contracts/foundry.toml` exist.
+
+Next (Phase 2): TigerGraph schema, loader, GSQL queries, `pnpm test:parity`, then API routes with engine fallback.
+
+Blocked on / needs from others:
+- **Kalp:** `.env` sits in `~/Desktop/glasshouse/`, outside the repo root. Move it to `glasshouse-kickoff/.env` (already git-ignored).
+- **Kalp:** `TG_HOST` holds a 32-character value that looks like a TigerGraph *secret*, not a host URL, and `TG_TOKEN` is empty. Phase 2 needs the workspace host URL plus a secret or token.
+
+Contract change request (if any): possibly `TG_SECRET` in `.env.example`. Savanna issues short-lived tokens from a secret, so the client would exchange the secret for a token itself rather than storing a token. I'll confirm against the Savanna docs at the start of Phase 2 before asking.
+
+Later (ideas, not now): none.
