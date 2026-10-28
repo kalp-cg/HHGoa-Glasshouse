@@ -184,3 +184,44 @@ Later (ideas, not now): none.
   - The SDK retries with a `Request` object, so the header check reads it from there.
 - Now green: `pnpm test` (engine 53, chain 7, tigergraph 15, relayer 2, web 9) and `pnpm typecheck`.
 - Still untested: Forge (Foundry not installed), the live Base ingest (public RPC rate-limited `eth_getLogs`), and any real transaction (relayer wallet unfunded).
+
+## Claude · 29 Oct, overnight (integrator)
+State of `main` (`pnpm demo:check`): **13 PASS · 1 FAIL · 5 PENDING**. All 99 unit tests and 12 Playwright tests (3 screen sizes) are green.
+
+Done tonight:
+- **Codex (Phase 3/4 code):** Base USDC ingest, x402 client, relayer service, Rail deploy script, zero-address guard. I integrated it:
+  - deps installed outside Codex's sandbox
+  - two test fixes (Base Sepolia network; headers read from a `Request`)
+- **Demo UI (Phase 1/2/3), built by Claude because headless Antigravity was blocked:**
+  - `/`: hero with the giant traced number, mode switch, Cytoscape graph (you / services / crowd rings, evidence on hover), profile panel, sleep strip on local time, write-up, Shield crowd, and a "Run a real Shield session" panel with Basescan links.
+  - `?fixtures=1` works. Playwright smoke at 1440, 1280×720 and 390.
+- **Phase 4 API:**
+  - `/api/audit/challenge` and `/api/audit`: single-use 5-minute nonce bound to the wallet; EIP-191; 401 for a foreign wallet; real-chain sellers labelled as services of unknown category.
+  - `/api/stats`: totals only, deduped by hashed wallet.
+  - `/api/checkout` (Dodo), `/api/shield/session` (relayer + optional x402 payment).
+  - Telegram leak alerts via viaSocket: `/api/viasocket/*`, opt-in, chat picked from a list.
+  - Store: Upstash REST, or a local file.
+- **`/audit` page:** browser wallet via viem, sign, own profile, live counter, pro audit button, Telegram alerts. Playwright: foreign wallet refused politely; no-wallet message.
+- **CONTRACTS §7** records the changes Kalp approved before bed.
+- **viaSocket skill run:**
+  - check script `0 FAIL, 2 WARN` (the WARNs are the checker failing to resolve the `telegram` slug; ids verified live with `versionIdFor`).
+  - Progress events sent to viaSocket, step names only.
+  - Bug found: the docs say slug `telegram-bot`, but the real slug is `telegram`.
+
+UNTESTED, and why:
+- `forge test` / Rail deploy: installing Foundry was blocked by my safety checks (external install script).
+- Telegram `list-messages` and `send-message` on a real connection: no test bot connected yet.
+- Live Base audit: `https://mainnet.base.org` and PublicNode both refuse `eth_getLogs` ("request limit reached" / "invalid params"). Needs a provider RPC.
+- Shield session on testnet: relayer wallet unfunded; Rail not deployed.
+- Antigravity didn't run: headless `agy` needs "skip all permissions", which my safety checks refused.
+
+**Kalp's morning list (in order):**
+1. **Foundry:** `curl -L https://foundry.paradigm.xyz | bash && foundryup`, then `forge test --root contracts`. That's the only FAIL.
+2. **Base RPC for real audits:** alchemy.com → new app → Base Mainnet → copy the HTTPS URL into `.env` as `BASE_RPC_URL=`. Then audit your own agent wallet on `/audit`.
+3. **Fund the relayer** `0x7362B05CC0f89a093A235E4f2C3B63328E9d845F`: Base Sepolia ETH (portal.cdp.coinbase.com → Faucets) and test USDC (faucet.circle.com).
+   Then deploy the Rail (Codex's HANDOFF steps 4–6) and set `RAIL_ADDRESS`. Run `pnpm --filter relayer start` and set `RELAYER_URL=http://localhost:8787`.
+4. **Telegram test bot:** @BotFather → `/newbot`. Connect it at https://flow.viasocket.com/integrations/83861/projBWngose4/apps-api, then send the bot "hi". I'll then run `list-messages` and `send-message` once for real.
+5. **Dodo:** test-mode API key and a "Pro audit" product → `DODO_API_KEY=`, `DODO_PRODUCT_ID=`.
+6. **Vercel:** create a token → `VERCEL_TOKEN=`, so I can deploy (root dir `apps/web`) and copy the env vars across. Add Upstash from Vercel → Storage for the production store.
+7. **Anthropic key** (optional): `ANTHROPIC_API_KEY=` for real write-ups. The template works without it.
+8. Optional: remove the `# pnpm … # pnpm end` block from `~/.zshrc` (from the `pnpm setup` mix-up).

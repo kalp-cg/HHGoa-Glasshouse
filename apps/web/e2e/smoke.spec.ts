@@ -18,6 +18,7 @@ for (const path of ["/", "/?fixtures=1"]) {
     await expect(traced).toContainText("0");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("none of them");
     await expect(page.getByTestId("graph")).toHaveAttribute("data-ready", "shield");
+    await expect(page.getByRole("button", { name: "Run a real Shield session" })).toBeVisible();
     await expect(page.locator("p", { hasText: /any of\s*\d+\s*people/ }).first()).toBeVisible();
     await page.screenshot({ path: `test-results/${info.project.name}${path === "/" ? "" : "-fixtures"}-shield.png`, fullPage: true });
 

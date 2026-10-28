@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Graph } from "./Graph";
+import { ShieldSession } from "./ShieldSession";
 import { ProfilePanel, SleepStrip, WriteUp } from "./Panels";
 import { useDemoData, useNarrative, type Mode } from "./data";
 
@@ -88,6 +89,7 @@ export function Demo() {
             <SleepStrip p={current.profile} />
             <WriteUp text={narrative} shield={mode === "shield"} />
           </div>
+          {mode === "shield" && <div className="mt-6"><ShieldSession /></div>}
           <footer className="mt-10 text-base text-ink-2">
             Synthetic demo data (seed 42){load.state === "ready" && load.source === "fixtures" ? " · saved copy" : ""}.
             Glasshouse never shows a real person&apos;s profile.
