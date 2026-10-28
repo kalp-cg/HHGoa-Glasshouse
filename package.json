@@ -1,0 +1,18 @@
+{
+  "name": "glasshouse",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck && tsc -p tsconfig.json",
+    "fixtures": "pnpm --filter @glasshouse/engine fixtures",
+    "demo:check": "tsx scripts/demo-check.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "mode": "shield",
+  "seed_wallet": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+  "wallets": [
+    {
+      "addr": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+      "role": "personal"
+    }
+  ],
+  "links": [],
+  "identity_anchor": {
+    "exchange_label": "Exchange A"
+  },
+  "timezone": null,
+  "hourly": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "signals": [],
+  "spend": {
+    "payments": 0,
+    "usdc": 0
+  },
+  "linkability": {
+    "traced": 0,
+    "total": 238
+  },
+  "anonymity_set": 221,
+  "source": "synthetic"
+}

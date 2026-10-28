@@ -1,0 +1,18 @@
+{
+  "name": "@glasshouse/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "fixtures": "tsx scripts/build-fixtures.ts"
+  },
+  "devDependencies": {
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

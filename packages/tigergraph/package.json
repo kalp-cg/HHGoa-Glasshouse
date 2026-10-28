@@ -1,0 +1,9 @@
+{
+  "name": "@glasshouse/tigergraph",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@glasshouse/engine": "workspace:*"
+  }
+}

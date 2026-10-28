@@ -1,0 +1,148 @@
+{
+  "mode": "open",
+  "seed_wallet": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+  "wallets": [
+    {
+      "addr": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+      "role": "personal"
+    },
+    {
+      "addr": "0xc4b913e725ba620b5c3cc2ab48468d9611a5a977",
+      "role": "agent"
+    },
+    {
+      "addr": "0x88e4e9680b5e17b649acc1a1f7666bb8f5e44d4d",
+      "role": "agent"
+    },
+    {
+      "addr": "0xfd2eb4ce22ae1882787ae01c1270e3ef2af74e59",
+      "role": "agent"
+    }
+  ],
+  "links": [
+    {
+      "a": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+      "b": "0xc4b913e725ba620b5c3cc2ab48468d9611a5a977",
+      "rule": "funding",
+      "detail": "topped up 25 USDC"
+    },
+    {
+      "a": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+      "b": "0x88e4e9680b5e17b649acc1a1f7666bb8f5e44d4d",
+      "rule": "funding",
+      "detail": "topped up 10 USDC"
+    },
+    {
+      "a": "0xc4b913e725ba620b5c3cc2ab48468d9611a5a977",
+      "b": "0xfd2eb4ce22ae1882787ae01c1270e3ef2af74e59",
+      "rule": "co-activity",
+      "detail": "same 2 minutes on 10 days"
+    }
+  ],
+  "identity_anchor": {
+    "exchange_label": "Exchange A"
+  },
+  "timezone": {
+    "offset_minutes": 330,
+    "label": "UTC+05:30",
+    "sleep_start_local": "01:00",
+    "sleep_end_local": "09:00"
+  },
+  "hourly": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    4,
+    5,
+    4,
+    10,
+    3,
+    5,
+    20,
+    3,
+    6,
+    6,
+    7,
+    5,
+    4,
+    3,
+    2,
+    27,
+    16,
+    1,
+    5,
+    8,
+    3,
+    2,
+    4,
+    5,
+    10,
+    5,
+    7,
+    21,
+    9,
+    16,
+    7,
+    5,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "signals": [
+    {
+      "category": "Travel",
+      "count": 110,
+      "first_ts": 1792302340,
+      "last_ts": 1793119525,
+      "text": "Planning a trip"
+    },
+    {
+      "category": "Career",
+      "count": 70,
+      "first_ts": 1792302051,
+      "last_ts": 1793119440,
+      "text": "Looking for a new job"
+    },
+    {
+      "category": "Health",
+      "count": 36,
+      "first_ts": 1792840968,
+      "last_ts": 1793038522,
+      "text": "Researching a health problem"
+    },
+    {
+      "category": "Finance",
+      "count": 12,
+      "first_ts": 1792302401,
+      "last_ts": 1793037147,
+      "text": "Sorting out money: taxes or loans"
+    },
+    {
+      "category": "Legal",
+      "count": 6,
+      "first_ts": 1792328170,
+      "last_ts": 1793084064,
+      "text": "Dealing with a contract or legal matter"
+    }
+  ],
+  "spend": {
+    "payments": 238,
+    "usdc": 5.865
+  },
+  "linkability": {
+    "traced": 238,
+    "total": 238
+  },
+  "anonymity_set": null,
+  "source": "synthetic"
+}
