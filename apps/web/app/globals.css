@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+/* Glasshouse: glass, light, exposure. High contrast so it reads from the back of a room. */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --ink: #0b1220;
+  --ink-2: #3a4556;
+  --line: #d6dce4;
+  --exposed: #d92d20;      /* traced, leaking */
+  --exposed-soft: #fde7e5;
+  --safe: #0e7c66;         /* shielded */
+  --safe-soft: #dcf3ec;
+  --accent: #2557d6;
+  --crowd: #9aa5b4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #070b12;
+    --surface: #0f1622;
+    --surface-2: #162132;
+    --ink: #f2f5f9;
+    --ink-2: #b7c2d2;
+    --line: #26344a;
+    --exposed: #ff5a4e;
+    --exposed-soft: #3a1513;
+    --safe: #35d0a8;
+    --safe-soft: #0f2f28;
+    --accent: #7aa2ff;
+    --crowd: #5b6b82;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-exposed: var(--exposed);
+  --color-exposed-soft: var(--exposed-soft);
+  --color-safe: var(--safe);
+  --color-safe-soft: var(--safe-soft);
+  --color-accent: var(--accent);
+  --color-crowd: var(--crowd);
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
