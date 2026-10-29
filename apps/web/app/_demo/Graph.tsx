@@ -35,7 +35,7 @@ function rings(graph: GraphView): Record<string, { x: number; y: number }> {
   return pos;
 }
 
-export function Graph({ graph, mode }: { graph: GraphView; mode: Mode }) {
+export function Graph({ graph, mode, height = "h-[380px] sm:h-[460px]" }: { graph: GraphView; mode: Mode; height?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const cy = useRef<Core | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -86,7 +86,7 @@ export function Graph({ graph, mode }: { graph: GraphView; mode: Mode }) {
   const links = graph.edges.filter((e) => e.type === "SAME_OWNER").length;
   return (
     <div className="relative">
-      <div ref={box} data-testid="graph" className="h-[380px] w-full sm:h-[460px]" role="img"
+      <div ref={box} data-testid="graph" className={`${height} w-full`} role="img"
         aria-label={`Payment graph: ${graph.nodes.length} wallets; ${owned} linked to you; ${links} same-owner links`} />
       {tip && (
         <div className="pointer-events-none absolute z-10 max-w-[240px] -translate-x-1/2 -translate-y-full rounded-md bg-ink px-2 py-1 text-sm text-bg shadow"

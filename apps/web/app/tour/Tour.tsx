@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Graph } from "../_demo/Graph";
-import { ProfilePanel } from "../_demo/Panels";
+import type { ProfileFacts } from "@glasshouse/engine";
 import { useDemoData } from "../_demo/data";
 import { LivePulse } from "../_live/LivePulse";
 import { LiveReal } from "../_live/LiveReal";
@@ -17,13 +17,42 @@ interface Props {
 const scan = (tx: string) => `https://sepolia.basescan.org/tx/${tx}`;
 const short = (tx: string) => `${tx.slice(0, 10)}…${tx.slice(-6)}`;
 
-function Slide({ kicker, title, children }: { kicker: string; title: ReactNode; children?: ReactNode }) {
+// compact: slides with a graph or a data panel, so they fit a 1280×720 projector without scrolling
+function Slide({ kicker, title, children, compact = false }: { kicker: string; title: ReactNode; children?: ReactNode; compact?: boolean }) {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <div className={`mx-auto flex w-full max-w-6xl flex-col ${compact ? "gap-4" : "gap-6"}`}>
       <p className="text-base font-semibold uppercase tracking-widest text-ink-2">{kicker}</p>
-      <h1 className="max-w-5xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl">{title}</h1>
+      <h1 className={`max-w-5xl font-bold leading-tight tracking-tight ${compact ? "text-3xl sm:text-4xl" : "text-4xl sm:text-6xl"}`}>{title}</h1>
       {children}
     </div>
+  );
+}
+
+// The profile in four lines, sized for a projector slide.
+function Learns({ p }: { p: ProfileFacts }) {
+  if (p.linkability.traced === 0) {
+    return (
+      <div className="rounded-2xl bg-safe-soft p-5 text-safe">
+        <p className="text-2xl font-semibold">Nothing that points to you.</p>
+        <p className="mt-2 text-xl">Each payment could belong to any of <strong className="tabular">{p.anonymity_set ?? "many"}</strong> people.</p>
+      </div>
+    );
+  }
+  const rows: [string, ReactNode][] = [
+    ["Who", p.identity_anchor ? <>Funded from <strong>{p.identity_anchor.exchange_label}</strong>, which likely knows their name</> : "No exchange link"],
+    ["Where", p.timezone ? <>Likely <strong>{p.timezone.label}</strong>; asleep {p.timezone.sleep_start_local}–{p.timezone.sleep_end_local}</> : "Unknown"],
+    ["What", p.signals.length ? p.signals.map((x) => x.text).join(" · ") : "No signals"],
+    ["How much", <><strong className="tabular">{p.spend.payments}</strong> payments across <strong className="tabular">{p.wallets.length}</strong> linked wallets</>],
+  ];
+  return (
+    <dl className="space-y-3 rounded-2xl border border-line bg-surface p-5">
+      {rows.map(([k, v]) => (
+        <div key={k}>
+          <dt className="text-sm font-semibold uppercase tracking-wide text-ink-2">{k}</dt>
+          <dd className="text-lg leading-snug">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -46,21 +75,21 @@ export function Tour({ qrSvg, auditUrl, proof, snapshot }: Props) {
       </Slide>
     ) },
     { id: "open", body: (
-      <Slide kicker="2 · One person's agents (simulated)" title={<>A stranger can trace <span className="text-exposed">all {open?.profile.linkability.traced ?? 238}</span> of their payments</>}>
+      <Slide compact kicker="2 · One person's agents (simulated)" title={<>A stranger can trace <span className="text-exposed">all {open?.profile.linkability.traced ?? 238}</span> of their payments</>}>
         {open ? (
           <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-            <div className="rounded-2xl border border-line bg-surface p-4"><Graph graph={open.graph} mode="open" /></div>
-            <ProfilePanel p={open.profile} />
+            <div className="rounded-2xl border border-line bg-surface p-4"><Graph graph={open.graph} mode="open" height="h-[240px]" /></div>
+            <Learns p={open.profile} />
           </div>
         ) : <p className="text-xl text-ink-2">Loading…</p>}
       </Slide>
     ) },
     { id: "shield", body: (
-      <Slide kicker="3 · One switch: Shield mode" title={<>Same person, same payments. <span className="text-safe">0 of {shield?.profile.linkability.total ?? 238}</span> traced.</>}>
+      <Slide compact kicker="3 · One switch: Shield mode" title={<>Same person, same payments. <span className="text-safe">0 of {shield?.profile.linkability.total ?? 238}</span> traced.</>}>
         {shield ? (
           <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-            <div className="rounded-2xl border border-line bg-surface p-4"><Graph graph={shield.graph} mode="shield" /></div>
-            <ProfilePanel p={shield.profile} />
+            <div className="rounded-2xl border border-line bg-surface p-4"><Graph graph={shield.graph} mode="shield" height="h-[240px]" /></div>
+            <Learns p={shield.profile} />
           </div>
         ) : <p className="text-xl text-ink-2">Loading…</p>}
         <p className="text-xl text-ink-2">Each session pays from a fresh one-time wallet, funded through a shared rail. The same analysis finds nothing to link.</p>
@@ -86,7 +115,7 @@ export function Tour({ qrSvg, auditUrl, proof, snapshot }: Props) {
       </Slide>
     ) },
     { id: "real", body: (
-      <Slide kicker="5 · Real agents, totals only" title="It's not just our test person">
+      <Slide compact kicker="5 · Real agents, totals only" title="It's not just our test person">
         <p className="text-2xl text-ink-2">
           Of <strong className="text-ink">{snapshot.wallets}</strong> real agent wallets we sampled on Base, <strong className="text-exposed">{snapshot.time_zone}%</strong> give away their time zone
           and <strong className="text-exposed">{snapshot.linked}%</strong> were topped up by another private wallet.
@@ -125,7 +154,7 @@ export function Tour({ qrSvg, auditUrl, proof, snapshot }: Props) {
         <a href="/" className="text-2xl font-bold tracking-tight">Glass<span className="text-accent">house</span></a>
         <span className="tabular text-base text-ink-2" data-testid="tour-step">{i + 1} / {slides.length}</span>
       </header>
-      <main className="flex flex-1 items-start px-4 py-6 sm:px-8 sm:py-10" aria-live="polite">{slides[i]!.body}</main>
+      <main className="flex flex-1 items-start px-4 py-4 sm:px-8 sm:py-6" aria-live="polite">{slides[i]!.body}</main>
       <footer className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-line bg-bg/95 px-4 py-3 backdrop-blur sm:px-8">
         <button type="button" onClick={() => go(-1)} disabled={i === 0} className="rounded-full border border-line px-5 py-2.5 text-lg font-semibold disabled:opacity-40">← Back</button>
         <div className="flex gap-2" aria-hidden="true">
