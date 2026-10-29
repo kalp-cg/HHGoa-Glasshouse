@@ -1,0 +1,85 @@
+{
+  "mode": "shield",
+  "seed_wallet": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+  "wallets": [
+    {
+      "addr": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+      "role": "personal"
+    },
+    {
+      "addr": "0x7b7430070ef3146d02f70d22fbd47349b3ae4207",
+      "role": "personal"
+    }
+  ],
+  "links": [
+    {
+      "a": "0x7b7430070ef3146d02f70d22fbd47349b3ae4207",
+      "b": "0x6dac38fc89723e00a940b0d3f00f8ffe67e88867",
+      "rule": "funding",
+      "detail": "topped up 362 USDC"
+    }
+  ],
+  "identity_anchor": null,
+  "timezone": null,
+  "hourly": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "signals": [],
+  "spend": {
+    "payments": 0,
+    "usdc": 0
+  },
+  "linkability": {
+    "traced": 0,
+    "total": 238
+  },
+  "anonymity_set": 221,
+  "source": "synthetic"
+}

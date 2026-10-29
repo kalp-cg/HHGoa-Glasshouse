@@ -41,7 +41,8 @@ export function ProfilePanel({ p }: { p: ProfileFacts }) {
         <dl className="mt-4">
           <Row label="Who you are">
             {p.identity_anchor
-              ? <>Funded from <strong>{p.identity_anchor.exchange_label}</strong>, which likely knows your real name.</>
+              ? <>Funded from <strong>{p.identity_anchor.exchange_label}</strong>, which likely knows your real name.{" "}
+                <a href="/sandbox/cake" className="text-accent underline">See how a Cake Wallet top-up hides this</a></>
               : "No exchange ties these wallets to a name."}
           </Row>
           <Row label="Where you live">

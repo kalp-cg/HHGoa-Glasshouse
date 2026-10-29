@@ -1,7 +1,7 @@
 export * from "./types";
 export * from "./constants";
 export * from "./validate";
-export { simulate, START_TS, DAYS, SERVICES, EXCHANGES, RAIL_LABEL, type Mode, type Simulation } from "./simulate";
+export { simulate, START_TS, DAYS, SERVICES, EXCHANGES, RAIL_LABEL, type Mode, type Simulation, type TopUp } from "./simulate";
 export {
   analyze, linkFunding, linkCoactivity, agentPayments, COACTIVITY, toMicro, fundingDetail, coactivityDetail, passesLift,
 } from "./analyze";

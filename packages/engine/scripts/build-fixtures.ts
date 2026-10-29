@@ -26,4 +26,7 @@ for (const mode of ["open", "shield"] as const) {
   write(`profile.${mode}.json`, facts);
   write(`graph.${mode}.json`, graphView(sim.ledger, facts, ownWallets));
 }
+// Cake Wallet sandbox: the same Shield world, but "you" topped up through a private swap in Cake Wallet
+const cake = simulate(SEED, "shield", "cake");
+write("profile.shield.cake.json", profile(cake.ledger, analyze(cake.ledger), cake.you.personal, { mode: "shield", ownWallets: cake.you.agents }));
 console.log(`fixtures written to ${OUT}`);

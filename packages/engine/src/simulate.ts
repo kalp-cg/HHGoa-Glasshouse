@@ -119,7 +119,12 @@ export interface Simulation {
   you: { personal: Address; agents: Address[] };
 }
 
-export function simulate(seed: number, mode: Mode = "open"): Simulation {
+// topUp (shield only): where "you" got the money. "exchange" = straight from Exchange A, as in the main demo;
+// "cake" = a private swap in Cake Wallet, paid out on Base by a swap wallet that is not an exchange
+// (sandbox model of Cake Wallet's built-in exchange). Everything else in the world is identical.
+export type TopUp = "exchange" | "cake";
+
+export function simulate(seed: number, mode: Mode = "open", topUp: TopUp = "exchange"): Simulation {
   const rng = createRng(seed);
   const addr = (r: Rng = rng): Address => `0x${r.hex(40)}`;
 
@@ -248,7 +253,13 @@ export function simulate(seed: number, mode: Mode = "open"): Simulation {
     // Shield: same activity, but each agent session pays from a fresh one-time wallet funded by the rail.
     const shieldRng = createRng(seed + 0x51e1d);
     const personal = you.personal!;
-    send(personal.fundedBy, personal.addr, personal.fund, personal.fundTs);
+    if (topUp === "cake") {
+      const swap = addr(createRng(seed + 0xca4e));
+      send(swap, personal.addr, personal.fund, personal.fundTs);
+      owners["cake-swap"] = [swap];
+    } else {
+      send(personal.fundedBy, personal.addr, personal.fund, personal.fundTs);
+    }
     const releases = you.agents
       .flatMap((a) => a.sessions)
       .map((payments) => ({ addr: addr(shieldRng), fundTs: payments[0]!.ts - shieldRng.int(20, 120), payments }))

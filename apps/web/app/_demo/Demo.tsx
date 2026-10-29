@@ -56,6 +56,7 @@ export function Demo() {
         <div className="flex flex-wrap items-center gap-4">
           <a href="/tour" className="text-base font-semibold text-ink-2 underline-offset-4 hover:underline">Tour</a>
           <a href="/real" className="text-base font-semibold text-ink-2 underline-offset-4 hover:underline">Real data</a>
+          <a href="/sandbox/cake" className="text-base font-semibold text-ink-2 underline-offset-4 hover:underline">Cake Wallet sandbox</a>
           <a href="/audit" className="text-base font-semibold text-accent underline-offset-4 hover:underline">Audit your agent</a>
           <ModeSwitch mode={mode} onChange={setMode} />
         </div>

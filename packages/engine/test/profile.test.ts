@@ -77,6 +77,20 @@ describe("profile (Gate 1, seed 42)", () => {
     expect(p.anonymity_set).toBeGreaterThan(100);
   });
 
+  it("shield + Cake Wallet top-up: no exchange left to name you; the rest of the world is unchanged", () => {
+    const viaExchange = simulate(42, "shield");
+    const viaCake = simulate(42, "shield", "cake");
+    const facts = ({ ledger, you }: typeof viaCake) => profile(ledger, analyze(ledger), you.personal, { mode: "shield", ownWallets: you.agents });
+    const ex = facts(viaExchange);
+    const cake = facts(viaCake);
+    expect(ex.identity_anchor).toEqual({ exchange_label: "Exchange A" });
+    expect(cake.identity_anchor).toBeNull();
+    expect(cake.linkability).toEqual({ traced: 0, total: 238 });
+    expect(cake.signals).toEqual([]);
+    expect(cake.anonymity_set).toBe(ex.anonymity_set);
+    expect(viaCake.ledger.transfers.length).toBe(viaExchange.ledger.transfers.length);
+  });
+
   it("payments to services of unknown category count, but give no signal", () => {
     const { ledger, you } = simulate(42, "open");
     const blind = { ...ledger, wallets: ledger.wallets.map((w) => (w.kind === "service" ? { ...w, category: null } : w)) };
