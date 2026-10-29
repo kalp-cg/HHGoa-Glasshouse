@@ -2,9 +2,15 @@
 // Gate 3: a real Shield session on Base Sepolia: a fresh one-time wallet funded through the rail, and (if
 // configured) one x402 payment from it. Shows the transaction hashes with explorer links.
 import { useState } from "react";
+import testnet from "../../../../packages/chain/exports/testnet.shield.json";
 
 const scan = (tx: string) => `https://sepolia.basescan.org/tx/${tx}`;
 type Session = { wallet: string; funded_tx: string; payment_tx?: string };
+
+// The last real session on Base Sepolia (pnpm shield:export): shown always, so there is proof even when the Rail is empty.
+const rail = testnet.wallets.find((w) => w.kind === "pool")?.addr;
+const lastFunding = testnet.transfers.find((t) => t.from === rail);
+const lastPayment = lastFunding && testnet.transfers.find((t) => t.from === lastFunding.to);
 
 function Tx({ label, tx }: { label: string; tx: string }) {
   return (
@@ -42,6 +48,17 @@ export function ShieldSession() {
         </div>
       )}
       {state.s === "error" && <p className="mt-3 text-base text-ink-2" role="status">Not available right now: {state.message}</p>}
+      {lastFunding && lastPayment && (
+        <div className="mt-4 border-t border-line pt-3 text-base">
+          <p className="font-medium">Last real session on Base Sepolia</p>
+          {[["Funded through the rail", lastFunding.tx], ["x402 payment", lastPayment.tx]].map(([label, tx]) => (
+            <p key={tx}>
+              {label}:{" "}
+              <a href={scan(tx!)} target="_blank" rel="noreferrer" data-testid="shield-proof-tx" className="break-all font-mono text-accent underline underline-offset-2">{tx}</a>
+            </p>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

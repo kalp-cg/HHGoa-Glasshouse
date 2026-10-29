@@ -12,8 +12,11 @@ going on in their life. Then one switch, Shield mode, pays from one-time wallets
 - **Demo** (`/`): a simulated person whose agents made 238 paid calls. "Pays openly" traces all 238 to them;
   "Shield mode" traces 0, and each payment could belong to any of 221 people. Add `?fixtures=1` to use the saved
   copy with no network.
-- **Audit your own agent** (`/audit`): open it in a wallet's browser (MetaMask, Coinbase Wallet), sign one free
-  message, and see what that wallet's last day of Base payments gives away. Only the wallet's owner can audit it.
+- **Audit your own agent** (`/audit`): sign one free message and see what that wallet's last day of Base payments
+  gives away. Works with browser wallets (each installed wallet gets its own button), smart wallets (Coinbase Smart
+  Wallet, Safe: ERC-1271/6492), and agent wallets on a server (sign the challenge there with Foundry, Node or Python
+  and paste only the signature). Only the wallet's owner can audit it.
+- **Reviewer tour** (`/tour`): the whole story in seven screens, live where it can be.
 - **Real data** (`/real`): a snapshot of what real x402 agent wallets on Base give away (time zone, exchange
   funding, linked wallets, what they pay for), from public chain data. Totals only: no wallet is named or stored.
 - **Leak alerts**: after an audit, connect Telegram once; you get a message when a new audit finds something new.
@@ -67,5 +70,8 @@ on the engine and the write-up uses a built-in template.
 | Rebuild the x402 service → category map from Coinbase's public x402 list | `pnpm real:services` |
 | Re-take the real-data snapshot (totals only; a few minutes) | `pnpm real:totals` |
 
-TigerGraph tokens expire after a week: exchange the secret for a new one with
+`GET /api/health` shows which dependencies are up (store, TigerGraph, Base, the Shield Rail's balance, keys), with no
+secrets in the output.
+
+With `TG_SECRET` set, the API renews an expired TigerGraph token by itself. To renew one by hand:
 `curl -s -X POST "$TG_HOST/gsql/v1/tokens" -H 'Content-Type: application/json' -d '{"secret": "<secret>"}'`.

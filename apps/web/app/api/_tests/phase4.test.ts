@@ -182,6 +182,12 @@ describe("write-up privacy", () => {
       // the same facts again: served from the cache, no second call
       expect(await narrative(demo)).toEqual({ text: "LLM TEXT", source: "groq" });
       expect(f).toHaveBeenCalledTimes(1);
+      // over the hourly cap: the template, no model call
+      process.env.GROQ_PER_HOUR = "0";
+      const calls = f.mock.calls.length;
+      expect((await narrative({ ...demo, spend: { payments: 2, usdc: 2 } })).source).toBe("template");
+      expect(f.mock.calls.length).toBe(calls);
+      delete process.env.GROQ_PER_HOUR;
       // different facts and Groq down: falls back to the template
       f.mockResolvedValueOnce(new Response("nope", { status: 503 }));
       expect((await narrative({ ...demo, spend: { payments: 1, usdc: 1 } })).source).toBe("template");

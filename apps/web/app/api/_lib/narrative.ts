@@ -1,6 +1,7 @@
 // Plain-English write-up of ProfileFacts. Input is the facts object and nothing else (AGENTS.md rule 5).
 import { createHash } from "node:crypto";
 import type { ProfileFacts } from "@glasshouse/engine";
+import { store } from "./store";
 
 const SYSTEM = `You explain what a stranger can learn from an AI agent's public on-chain payments.
 You receive a JSON object of facts about one person. Write exactly 4 sentences in plain English, addressed to that person as "you".
@@ -89,6 +90,9 @@ export async function narrative(facts: ProfileFacts): Promise<{ text: string; so
   const hit = cache.get(key);
   if (hit) return { text: hit, source: "groq" };
   try {
+    // anyone can ask for a write-up: cap model calls per hour, then use the template (free, on-server)
+    const cap = Number(process.env.GROQ_PER_HOUR ?? 120);
+    if ((await store().incr(`groq:hour:${Math.floor(Date.now() / 3_600_000)}`)) > cap) return template;
     const text = await groqNarrative(facts);
     if (!text) return template;
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);

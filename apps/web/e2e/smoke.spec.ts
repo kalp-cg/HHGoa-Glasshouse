@@ -19,6 +19,8 @@ for (const path of ["/", "/?fixtures=1"]) {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("none of them");
     await expect(page.getByTestId("graph")).toHaveAttribute("data-ready", "shield");
     await expect(page.getByRole("button", { name: "Run a real Shield session" })).toBeVisible();
+    // the last real Base Sepolia session is always shown, even when the Rail is empty
+    await expect(page.getByTestId("shield-proof-tx")).toHaveCount(2);
     await expect(page.locator("p", { hasText: /any of\s*\d+\s*people/ }).first()).toBeVisible();
     await page.screenshot({ path: `test-results/${info.project.name}${path === "/" ? "" : "-fixtures"}-shield.png`, fullPage: true });
 

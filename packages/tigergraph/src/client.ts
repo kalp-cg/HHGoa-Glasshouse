@@ -9,6 +9,7 @@ export interface TgConfig {
   host: string;      // e.g. https://<workspace>.i.tgcloud.io
   token: string;
   graph: string;
+  secret?: string;       // optional: lets the client renew an expired token itself (POST /gsql/v1/tokens)
   timeoutMs?: number;
   retries?: number;      // total attempts on network failure (default 3)
   retryDelayMs?: number; // grows linearly per attempt (default 1000)
@@ -30,15 +31,34 @@ export interface TgClient {
 export function configFromEnv(env: Record<string, string | undefined> = process.env): TgConfig | null {
   const host = env.TG_HOST?.trim();
   const token = env.TG_TOKEN?.trim();
-  if (!host || !token) return null;
+  const secret = env.TG_SECRET?.trim() || undefined;
+  if (!host || (!token && !secret)) return null;
   return {
     host: (/^https?:\/\//.test(host) ? host : `https://${host}`).replace(/\/+$/, ""),
-    token,
+    token: token ?? "",
     graph: env.TG_GRAPH?.trim() || "Glasshouse",
+    ...(secret ? { secret } : {}),
   };
 }
 
+// Tokens renewed from the secret, per host, shared by every client in this process (tokens last a week).
+const renewed = new Map<string, string>();
+
 export function createClient(cfg: TgConfig, fetchImpl: typeof fetch = fetch): TgClient {
+  const token = () => renewed.get(cfg.host) ?? cfg.token;
+  const renew = async (): Promise<boolean> => {
+    if (!cfg.secret) return false;
+    const res = await fetchImpl(`${cfg.host}/gsql/v1/tokens`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret: cfg.secret }),
+      signal: AbortSignal.timeout(cfg.timeoutMs ?? 30_000),
+    });
+    const body = (await res.json().catch(() => ({}))) as { token?: string };
+    if (!res.ok || !body.token) return false;
+    renewed.set(cfg.host, body.token);
+    return true;
+  };
   // Network failures (fetch throws TypeError) are always retried. Gateway timeouts and overload
   // (429/499/502/503/504) are retried only for idempotent calls (upserts, query reads).
   const send = async (path: string, init: RequestInit, idempotent: boolean): Promise<Response> => {
@@ -48,7 +68,7 @@ export function createClient(cfg: TgConfig, fetchImpl: typeof fetch = fetch): Tg
       try {
         const res = await fetchImpl(`${cfg.host}${path}`, {
           ...init,
-          headers: { Authorization: `Bearer ${cfg.token}`, ...init.headers },
+          headers: { Authorization: `Bearer ${token()}`, ...init.headers },
           signal: AbortSignal.timeout(cfg.timeoutMs ?? 30_000),
         });
         if (!idempotent || !RETRY_STATUS.has(res.status) || i >= attempts) return res;
@@ -60,7 +80,9 @@ export function createClient(cfg: TgConfig, fetchImpl: typeof fetch = fetch): Tg
     }
   };
   const request = async (path: string, init: RequestInit, idempotent = false): Promise<string> => {
-    const res = await send(path, init, idempotent);
+    let res = await send(path, init, idempotent);
+    // an expired or missing token: renew it from the secret once, then retry
+    if ((res.status === 401 || res.status === 403 || !token()) && (await renew())) res = await send(path, init, idempotent);
     const text = await res.text();
     if (!res.ok) throw new TgError(`TigerGraph ${res.status} on ${path}: ${text.slice(0, 300)}`);
     return text;

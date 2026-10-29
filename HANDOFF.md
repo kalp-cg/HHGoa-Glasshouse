@@ -314,3 +314,15 @@ Asked for a sandbox on public data instead of someone's real wallet. Built:
 - **Live growing sample** (`/api/live/real`): while anyone has `/real` or the tour open, the server analyses one more real payer every 2 minutes (a store lock shared by all viewers) and folds it into running totals. Only a hash per wallet is kept (no double counting); a test checks no address reaches the store.
 - **`/tour`**: a 7-screen reviewer walkthrough (← → or click, projector-sized). Live pulse → simulated person 238/238 → Shield 0/238 → the real Base Sepolia transactions (Basescan links) → live real-wallet totals → QR code to `/audit`.
 - Browser tests stand in for the live endpoints (and point `BASE_RPC_URL` nowhere) so tests never use the RPC quota. Tests: 125 unit, 24 browser (one worker).
+
+## Claude · 29 Oct, more wallets + production hardening
+- **Smart wallets:** `verifyOwnership` checks ordinary signatures locally, then asks Base for smart wallets (ERC-1271 / ERC-6492: Coinbase Smart Wallet, Safe, CDP smart accounts). Optional 4th argument for tests; the CONTRACTS §5 signature is unchanged. Checked on live Base that a foreign signature is still rejected.
+- **Agent wallets on a server:** `/audit` → "Sign without a browser wallet". You get the challenge, sign it where the key lives (Foundry `cast`, Node/viem or Python/eth-account), and paste only the signature. All three commands were verified against a real challenge.
+- **Wallet picker (EIP-6963):** each installed wallet gets its own "Audit with …" button.
+- **TigerGraph token renewal:** with `TG_SECRET` set (now also on Vercel), the client renews an expired token itself and retries once, so the site keeps using TigerGraph after the 4 Nov expiry.
+- AI write-ups capped at `GROQ_PER_HOUR` (default 120) model calls, then the template.
+- Security headers on every response.
+- `GET /api/health` (store, TigerGraph, Base, Rail balance, keys; no secrets).
+- Share image (`opengraph-image`).
+- The Shield panel always shows the last real Base Sepolia session.
+- Tests: 132 unit, 30 browser.

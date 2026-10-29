@@ -101,3 +101,30 @@ describe("tgLinks / tgMembers", () => {
     await expect(tgLinks(createClient({ host: "h", token: "t", graph: "G" }, f), ledger, "open")).rejects.toThrow(TgError);
   });
 });
+
+describe("token renewal from the secret", () => {
+  it("renews an expired token once and retries; later calls reuse the new token", async () => {
+    const seen: string[] = [];
+    const f = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/gsql/v1/tokens")) return Response.json({ token: "fresh-token", error: false });
+      const auth = (init?.headers as Record<string, string>).Authorization ?? "";
+      seen.push(auth);
+      return auth === "Bearer fresh-token" ? Response.json({ results: [{ ok: 1 }] }) : new Response("expired", { status: 401 });
+    });
+    const c = createClient({ host: "https://renew.example", token: "old", graph: "G", secret: "s3cret", retryDelayMs: 1 }, f);
+    expect(await c.runQuery("q", {})).toEqual([{ ok: 1 }]);
+    expect(await c.runQuery("q", {})).toEqual([{ ok: 1 }]);
+    expect(seen).toEqual(["Bearer old", "Bearer fresh-token", "Bearer fresh-token"]);
+    expect(f.mock.calls.filter(([u]) => String(u).endsWith("/gsql/v1/tokens"))).toHaveLength(1);
+  });
+
+  it("without a secret an expired token is still an error", async () => {
+    const f = vi.fn(async () => new Response("expired", { status: 401 }));
+    await expect(createClient({ host: "https://nosecret.example", token: "old", graph: "G" }, f).runQuery("q", {})).rejects.toThrow("401");
+  });
+
+  it("configFromEnv accepts a secret instead of a token", () => {
+    expect(configFromEnv({ TG_HOST: "x.i.tgcloud.io", TG_SECRET: "s" })).toMatchObject({ token: "", secret: "s" });
+  });
+});
