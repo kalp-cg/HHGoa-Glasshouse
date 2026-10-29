@@ -3,6 +3,7 @@
 // UPSTASH_REDIS_REST_URL/TOKEN (or Vercel's KV_REST_API_URL/TOKEN). Local runs: a JSON file in apps/web/.data/.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { HttpError } from "./http";
 
 export interface Store {
   get(key: string): Promise<string | null>;
@@ -95,6 +96,8 @@ export function store(): Store {
   if (!instance) {
     const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
     const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+    // serverless instances share nothing and have a read-only disk: a shared store is required there
+    if ((!url || !token) && process.env.VERCEL) throw new HttpError(503, "audit store is not configured yet (UPSTASH_REDIS_REST_URL/TOKEN)");
     instance = url && token ? upstash(url, token) : file(process.env.GLASSHOUSE_STORE_FILE ?? join(process.cwd(), ".data", "store.json"));
   }
   return instance;

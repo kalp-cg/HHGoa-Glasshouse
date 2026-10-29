@@ -36,7 +36,7 @@ async function links(mode: Mode, ledger: Ledger): Promise<{ links: SameOwnerLink
   const cached = tgCache.get(mode);
   if (cached) return { links: cached, source: "tigergraph" };
   try {
-    const found = await tgLinks(createClient({ ...cfg, timeoutMs: 8_000 }), ledger, mode);
+    const found = await tgLinks(createClient({ ...cfg, timeoutMs: 20_000 }), ledger, mode);
     tgCache.set(mode, found);
     return { links: found, source: "tigergraph" };
   } catch (err) {
