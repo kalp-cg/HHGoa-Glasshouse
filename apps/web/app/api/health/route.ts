@@ -2,6 +2,7 @@
 import "../_lib/env";
 import { configFromEnv, createClient } from "@glasshouse/tigergraph";
 import { store } from "../_lib/store";
+import demo from "../../../../../fixtures/profile.open.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export async function GET(): Promise<Response> {
     store: await timed(async () => { await store().get("health:ping"); return process.env.UPSTASH_REDIS_REST_URL ? "upstash" : "local file"; }),
     tigergraph: process.env.OFFLINE_MODE === "true" ? { ok: true, note: "offline mode: engine answers" }
       : !tg ? { ok: false, note: "not configured: engine answers" }
-      : await timed(async () => { await createClient({ ...tg, timeoutMs: 7000, retries: 1 }).runQuery("owner_profile", { seed: "open:0x0000000000000000000000000000000000000000" }); return "queries answer"; }),
+      : await timed(async () => { await createClient({ ...tg, timeoutMs: 7000, retries: 1 }).runQuery("owner_profile", { seed: `open:${demo.seed_wallet}` }); return "queries answer"; }),
     base_mainnet: await timed(async () => `block ${Number(BigInt(await rpc(process.env.BASE_RPC_URL || "https://mainnet.base.org", "eth_blockNumber", [])))}`),
     shield_rail: !rail ? { ok: false, note: "RAIL_ADDRESS not set" } : await timed(async () => {
       const bal = BigInt(await rpc(process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org", "eth_call", [{ to: USDC_SEPOLIA, data: `0x70a08231${rail.slice(2).toLowerCase().padStart(64, "0")}` }, "latest"]));
