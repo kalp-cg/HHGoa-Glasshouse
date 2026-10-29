@@ -267,3 +267,14 @@ Needs Kalp:
 - `GROQ_API_KEY` set (local + Vercel). Default model `openai/gpt-oss-120b` with `reasoning_effort: low` (without it the model spends all tokens thinking and answers nothing). A field glossary in the prompt keeps Shield mode accurate ("none can be traced; could belong to any of 221 people"). Live: demo profiles → Groq (~2 s warm); a real-chain profile → template only (verified in production).
 - `.env`: there are no longer two. `~/Desktop/glasshouse/.env` is now a symlink to `glasshouse-kickoff/.env` (mode 600). Backups of both old files are in the session scratchpad only.
 - Left to fill in `.env`: `DODO_PRODUCT_ID` (checkout) and test USDC for the relayer (Gate 3).
+
+## Claude · 29 Oct, Shield ready on Base Sepolia (waiting for USDC)
+- **Rail deployed** to Base Sepolia: `0x2c9c4b8ec4454d0d58450892bbd8b34a8386897b` (tx `0xeae65401…0640`). Verified on chain: `usdc()` = Circle Base Sepolia USDC, `relayer()` = our relayer wallet.
+- **`/api/x402/demo`**: a real x402 endpoint (0.01 USDC on Base Sepolia via the x402.org facilitator, pay-to `X402_PAY_TO`). Live: unpaid request → HTTP 402.
+- **`/api/shield/session`**: when no `RELAYER_URL` is set (the deployed site cannot reach a relayer on a laptop), the route releases from the Rail itself with the testnet relayer key. Then it waits for the funding and pays `/api/x402/demo` once from the new one-time wallet. Capped at 10 sessions/hour (Upstash). Live: answers "the Rail is empty" until it is funded.
+- The testnet relayer key is now also on Vercel (encrypted) so the live site can release. It holds only free test tokens.
+- Scripts:
+  - `pnpm shield:fund`: approve + deposit 10 test USDC from the relayer into the Rail.
+  - `pnpm shield:export`: writes the real testnet ledger to `packages/chain/exports/testnet.shield.json` for Gate 3.
+- Playwright checks the Shield panel renders the transaction hashes as Basescan links (Gate 3 "tx hash shown in the UI").
+- **To finish Gate 3 the moment the relayer has USDC:** run `pnpm shield:fund`, click "Run a real Shield session" on the live site, then `pnpm shield:export` and `pnpm demo:check`.
