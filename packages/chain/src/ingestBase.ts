@@ -3,7 +3,9 @@ import { createPublicClient, http, parseAbiItem, type Log } from "viem";
 import { base } from "viem/chains";
 
 // viem public-client and getLogs APIs: https://viem.sh/docs/clients/public and https://viem.sh/docs/actions/public/getLogs
-const BASE_USDC = "0x833589fcd6ed6e08f4c7c32d4f71b54bda02913" as Address;
+import { BASE_USDC } from "./constants";
+import { fetchAlchemyLedger } from "./ingestAlchemy";
+export { BASE_USDC };
 const TRANSFER = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");
 const AUTHORIZATION_USED = parseAbiItem("event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)");
 const PAGE_SIZE = 500n;
@@ -90,6 +92,20 @@ export async function fetchAgentTransfers(address: Address, opts: { fromBlock: b
   if (opts.fromBlock < 0n || opts.toBlock < opts.fromBlock) throw new Error("Invalid Base block range");
   const normalizedAddress = address.toLowerCase() as Address;
   const rpcUrl = process.env.BASE_RPC_URL || "https://mainnet.base.org";
+  // Alchemy's free plan limits eth_getLogs to 10 blocks; its transfer API has no range limit.
+  if (new URL(rpcUrl).hostname.endsWith(".alchemy.com")) {
+    return fetchAlchemyLedger(normalizedAddress, opts, async (body) => {
+      const res = await fetch(rpcUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(30_000) });
+      // a rate limit can arrive as a bare HTTP 429 with an empty body; the ingest retries it
+      if (res.status === 429) return { error: { code: 429, message: "HTTP 429 (compute units per second)" } };
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(`Alchemy HTTP ${res.status}: ${text.slice(0, 120) || "empty response"}`);
+      }
+    });
+  }
   const client = createPublicClient({ chain: base, transport: http(rpcUrl, { retryCount: 2 }) });
   const outgoing: TransferLog[] = [];
   const incoming: TransferLog[] = [];

@@ -225,3 +225,19 @@ UNTESTED, and why:
 6. **Vercel:** create a token → `VERCEL_TOKEN=`, so I can deploy (root dir `apps/web`) and copy the env vars across. Add Upstash from Vercel → Storage for the production store.
 7. **Anthropic key** (optional): `ANTHROPIC_API_KEY=` for real write-ups. The template works without it.
 8. Optional: remove the `# pnpm … # pnpm end` block from `~/.zshrc` (from the `pnpm setup` mix-up).
+
+## Claude · 29 Oct, morning
+Done:
+- **Foundry installed by Kalp (`foundryup`) and finished by me: `forge test --root contracts` → 6/6 pass.** `demo:check` now finds `~/.foundry/bin` itself.
+- **Bug found in Codex's ingest:** the Base USDC constant had 39 hex digits (one character dropped), so every Base log query was invalid. Fixed (`packages/chain/src/constants.ts`, verified on chain: `symbol() = USDC`) with a regression test.
+- **Alchemy (Base mainnet + Base Sepolia) enabled and set in `.env`.** The free plan allows `eth_getLogs` over only 10 blocks, so `fetchAgentTransfers` now uses `alchemy_getAssetTransfers` on Alchemy URLs (`packages/chain/src/ingestAlchemy.ts`):
+  - no block-range limit
+  - x402-style payments = outgoing USDC transfers whose transaction was submitted by someone else (the facilitator pays the gas)
+  - busy wallets: sender lookups are sampled (max 300), which took a 6,000-transfer payer from 257 s to 14.5 s
+  - 429s are retried with backoff
+  - Tested live on real Base data: 137 authorizations from 67 payers in 10 blocks, full profile from a real payer.
+- Relayer wallet funded with 0.0002 Base Sepolia ETH; USDC still to come.
+
+Needs Kalp:
+- **TigerGraph workspace auto-paused** ("Auto start is not enabled for this workspace"). Resume `MyWorkspace` at tgcloud.io (Workspace → Actions) and, if offered, turn on auto-start. Data persists. Until then the API uses the engine (`OFFLINE_MODE` behaviour), and `demo:check` shows parity FAIL because TigerGraph is unreachable, not because the answers differ.
+- Test USDC for `0x7362B05CC0f89a093A235E4f2C3B63328E9d845F` (CDP faucet → Base Sepolia → USDC).

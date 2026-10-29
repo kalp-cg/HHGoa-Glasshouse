@@ -17,7 +17,9 @@ if (existsSync(join(root, ".env"))) process.loadEnvFile(join(root, ".env"));
 const pending = (note: string): Check["run"] => () => ({ status: "PENDING", note });
 
 function command(cmd: string, args: string[]): Result {
-  const r = spawnSync(cmd, args, { cwd: root, encoding: "utf8" });
+  // Foundry installs to ~/.foundry/bin, which a fresh shell may not have on PATH yet
+  const env = { ...process.env, PATH: `${process.env.PATH}:${process.env.HOME}/.foundry/bin` };
+  const r = spawnSync(cmd, args, { cwd: root, encoding: "utf8", env });
   if (r.error) return { status: "FAIL", note: `${cmd} not runnable: ${r.error.message}` };
   if (r.status === 0) return { status: "PASS" };
   const tail = `${r.stdout}${r.stderr}`.trim().split("\n").slice(-3).join(" | ");
