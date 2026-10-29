@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-10-29T09:01:03.918Z",
+  "window": "last 24 hours of Base mainnet",
+  "method": "x402-style payers (USDC EIP-3009 authorizations) sampled from 30 ten-block windows across the day; each wallet's day of history analysed in memory with the same rules as the demo; only these totals are kept",
+  "payers_seen": 1200,
+  "wallets_analysed": 30,
+  "median_payments_per_day": 28,
+  "give_away_time_zone_pct": 30,
+  "run_around_the_clock_pct": 7,
+  "funded_from_exchange_like_wallet_pct": 7,
+  "linked_to_another_wallet_pct": 67,
+  "show_a_life_signal_pct": 13,
+  "wallets_by_signal": {
+    "Trading": 3,
+    "Developer": 1
+  },
+  "wallets_by_time_zone": {
+    "UTC-08:00": 8,
+    "other": 1
+  }
+}

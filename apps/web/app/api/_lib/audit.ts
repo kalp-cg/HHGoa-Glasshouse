@@ -1,11 +1,13 @@
 // Real-chain self-audit: challenge → signature → Base mainnet ingest → the same engine analysis.
 // Only the wallet's verified owner ever sees its profile (AGENTS.md safety rules).
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { analyze, profile, type Address, type Ledger, type ProfileFacts } from "@glasshouse/engine";
+import { analyze, labelRealChain, profile, type Address, type Category, type Ledger, type ProfileFacts } from "@glasshouse/engine";
+import serviceList from "../../../../../fixtures/x402-services.base.json";
 import { HttpError } from "./http";
 import { store } from "./store";
 
 export const NONCE_TTL_SEC = 5 * 60;
+const SERVICES: Record<string, string> = serviceList.services;
 const BLOCKS_PER_DAY = 43_200; // Base: one block every 2 s
 
 export function parseAddress(v: unknown): Address {
@@ -45,43 +47,13 @@ export async function consumeChallenge(address: Address, nonce: unknown): Promis
   return challengeMessage(address, nonce, saved.expires_at);
 }
 
-// Recipients of the wallet's x402-style (EIP-3009) payments are the services it paid. Their category is unknown,
-// so they count as payments (rhythm, time zone, spend) but give no life signal.
-export function labelSellers(ledger: Ledger, address: Address): Ledger {
-  const sellers = new Set(ledger.transfers.filter((t) => t.from === address).map((t) => t.to));
-  return {
-    ...ledger,
-    wallets: ledger.wallets.map((w) =>
-      sellers.has(w.addr) && w.addr !== address
-        ? { ...w, kind: "service", label: `x402 service ${w.addr.slice(0, 6)}…${w.addr.slice(-4)}`, category: null }
-        : w),
-  };
-}
-
-// A wallet that has sent this many transactions is an exchange or a service, not a person's own wallet.
-const HIGH_VOLUME_SENDS = 1000;
-const MAX_FUNDERS_CHECKED = 20;
-
-// Who funded the wallet? Under the funding rule an unlabelled funder would count as the person's own wallet, which
-// is wrong for an exchange's hot wallet. A high-volume funder is labelled as the likely exchange instead, so it
-// becomes the identity anchor rather than "your wallet".
-export async function labelFunders(ledger: Ledger, address: Address): Promise<Ledger> {
-  const kind = new Map(ledger.wallets.map((w) => [w.addr, w.kind]));
-  const funders = [...new Set(ledger.transfers.filter((t) => t.to === address && t.from !== address).map((t) => t.from))]
-    .filter((a) => kind.get(a) === "")
-    .slice(0, MAX_FUNDERS_CHECKED);
-  const sends = await Promise.all(funders.map((a) =>
-    rpc("eth_getTransactionCount", [a, "latest"]).then((n) => Number(BigInt(n)), () => 0)));
-  const busy = new Set(funders.filter((_, i) => sends[i]! >= HIGH_VOLUME_SENDS));
-  return {
-    ...ledger,
-    wallets: ledger.wallets.map((w) =>
-      busy.has(w.addr) ? { ...w, kind: "exchange", label: "a high-volume wallet (probably an exchange)", category: null } : w),
-  };
-}
-
+// The chain gives no labels: services the wallet paid get their category from the public x402 service list,
+// and a high-volume funder becomes the likely exchange (see packages/engine/src/realChain.ts).
 export async function auditProfile(ledger: Ledger, address: Address): Promise<ProfileFacts> {
-  const labelled = await labelFunders(labelSellers(ledger, address), address);
+  const labelled = await labelRealChain(ledger, address, {
+    serviceCategory: (a) => (SERVICES[a] as Category | undefined) ?? null,
+    sendCount: async (a) => Number(BigInt(await rpc("eth_getTransactionCount", [a, "latest"]))),
+  });
   return profile(labelled, analyze(labelled), address, { mode: "open", source: "base-mainnet" });
 }
 

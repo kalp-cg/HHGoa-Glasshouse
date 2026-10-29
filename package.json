@@ -15,7 +15,9 @@
     "tg:setup": "pnpm --filter @glasshouse/tigergraph tg:setup",
     "analyze:ledger": "pnpm --filter @glasshouse/engine analyze:ledger",
     "shield:export": "node --env-file-if-exists=.env --import tsx scripts/export-testnet.ts",
-    "shield:fund": "bash scripts/shield-fund.sh"
+    "shield:fund": "bash scripts/shield-fund.sh",
+    "real:services": "tsx scripts/x402-services.ts",
+    "real:totals": "node --env-file-if-exists=.env --import tsx scripts/real-base-totals.ts"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

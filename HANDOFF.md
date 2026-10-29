@@ -300,3 +300,11 @@ Reviewed the whole product for simplicity and correctness; fixed:
 - The mode switch is two toggle buttons (`aria-pressed`) instead of a half-implemented radio group.
 - README rewritten for the finished product.
 - Tests: 110 unit, 18 browser; `demo:check` 17/17.
+
+## Claude · 29 Oct, real data sandbox (public Base data, totals only)
+Asked for a sandbox on public data instead of someone's real wallet. Built:
+- `pnpm real:services` → `fixtures/x402-services.base.json`: x402 service pay-to address → category, from Coinbase's public x402 list ("Bazaar"). 351 Base services seen in a 4,000-listing sample; 222 categorized (engine `categorize`, conservative, tested). Services only, no payers.
+- Engine `labelRealChain` (tested), shared by the real audit and the snapshot: paid wallets become services with their public category, so real audits can now show life signals; a funder with 1,000+ sends becomes the likely exchange.
+- `pnpm real:totals` → `fixtures/real-base-totals.json`: samples x402-style payers from 30 ten-block windows over the last 24 h on Base mainnet, analyses each wallet in memory, and saves totals only (checked: no address in the file).
+  - First snapshot: 1,200 payers seen, 30 analysed. 30% give away a time zone (mostly UTC-08:00), 67% linked to another wallet, 13% show a life signal (Trading, Developer), 7% funded from an exchange-like wallet, 7% pay around the clock, median 28 calls/day.
+- `/real` page shows the snapshot; a browser test fails if anything shaped like an address ever appears on it. Tests: 123 unit, 21 browser.

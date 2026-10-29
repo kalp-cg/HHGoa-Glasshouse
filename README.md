@@ -14,6 +14,8 @@ going on in their life. Then one switch, Shield mode, pays from one-time wallets
   copy with no network.
 - **Audit your own agent** (`/audit`): open it in a wallet's browser (MetaMask, Coinbase Wallet), sign one free
   message, and see what that wallet's last day of Base payments gives away. Only the wallet's owner can audit it.
+- **Real data** (`/real`): a snapshot of what real x402 agent wallets on Base give away (time zone, exchange
+  funding, linked wallets, what they pay for), from public chain data. Totals only: no wallet is named or stored.
 - **Leak alerts**: after an audit, connect Telegram once; you get a message when a new audit finds something new.
 - **Real Shield session** (Shield mode → "Run a real Shield session"): a fresh one-time wallet is funded through the
   Rail on Base Sepolia and pays one x402 call. Both transactions link to Basescan.
@@ -31,7 +33,8 @@ going on in their life. Then one switch, Shield mode, pays from one-time wallets
 The API uses TigerGraph for linking and falls back to the engine when `OFFLINE_MODE=true` or TigerGraph is
 unreachable (the `x-glasshouse-links` header says which answered).
 
-**Safety rules, in code:** a real wallet's profile goes only to whoever signed for it; usage numbers are totals
+**Safety rules, in code:** a real wallet's profile goes only to whoever signed for it; public real-chain data is
+shown only as totals; usage numbers are totals
 (wallets deduped by hash); a real audit is never sent to an outside AI model; anything that signs is testnet-only.
 
 **Known limits:** the 238-payment person is simulated; real audits read one day of history; the Rail's relayer is
@@ -61,6 +64,8 @@ on the engine and the write-up uses a built-in template.
 | Put 10 test USDC from the relayer into the Rail (Base Sepolia) | `pnpm shield:fund` |
 | Save the real testnet Shield transactions as a ledger | `pnpm shield:export` |
 | Run any ledger through the analysis | `pnpm analyze:ledger <ledger.json> <wallet>` |
+| Rebuild the x402 service → category map from Coinbase's public x402 list | `pnpm real:services` |
+| Re-take the real-data snapshot (totals only; a few minutes) | `pnpm real:totals` |
 
 TigerGraph tokens expire after a week: exchange the secret for a new one with
 `curl -s -X POST "$TG_HOST/gsql/v1/tokens" -H 'Content-Type: application/json' -d '{"secret": "<secret>"}'`.
