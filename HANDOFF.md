@@ -262,3 +262,8 @@ Needs Kalp:
 - **Privacy rule in code:** a real person's audit (`source: "base-mainnet"`) never goes to an outside model; only the synthetic demo profile does.
 - Tests are hermetic (they blank the Upstash/LLM settings and can't touch the live store).
 - Still open: `DODO_PRODUCT_ID` (checkout), testnet USDC for the relayer (Shield payment + Gate 3), optional `GROQ_API_KEY`.
+
+## Claude · 29 Oct, Groq write-up live
+- `GROQ_API_KEY` set (local + Vercel). Default model `openai/gpt-oss-120b` with `reasoning_effort: low` (without it the model spends all tokens thinking and answers nothing). A field glossary in the prompt keeps Shield mode accurate ("none can be traced; could belong to any of 221 people"). Live: demo profiles → Groq (~2 s warm); a real-chain profile → template only (verified in production).
+- `.env`: there are no longer two. `~/Desktop/glasshouse/.env` is now a symlink to `glasshouse-kickoff/.env` (mode 600). Backups of both old files are in the session scratchpad only.
+- Left to fill in `.env`: `DODO_PRODUCT_ID` (checkout) and test USDC for the relayer (Gate 3).
