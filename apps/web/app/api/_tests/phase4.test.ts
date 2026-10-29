@@ -35,7 +35,7 @@ beforeAll(async () => {
   process.env.GLASSHOUSE_STORE_FILE = join(mkdtempSync(join(tmpdir(), "gh-store-")), "store.json");
   process.env.SESSION_SECRET = "test-secret-test-secret-test-secret-123";
   // blank (not deleted): _lib/env.ts loads the repo's real .env without overriding variables that already exist
-  for (const k of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN", "DODO_API_KEY", "DODO_PRODUCT_ID", "RELAYER_URL", "GROQ_API_KEY", "ANTHROPIC_API_KEY"]) process.env[k] = "";
+  for (const k of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN", "DODO_API_KEY", "DODO_PRODUCT_ID", "RELAYER_URL", "RELAYER_PRIVATE_KEY", "RAIL_ADDRESS", "X402_PAY_TO", "GROQ_API_KEY", "ANTHROPIC_API_KEY"]) process.env[k] = "";
   // the only network call left: eth_blockNumber for the audit window
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ jsonrpc: "2.0", id: 1, result: "0x1000000" })));
   ({ POST: challenge } = await import("../audit/challenge/route"));

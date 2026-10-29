@@ -171,7 +171,7 @@ const gates: { name: string; checks: Check[] }[] = [
     checks: [
       { name: "shield: 0/238 traced via the same queries (TigerGraph)", run: shieldViaTigerGraph },
       { name: "real testnet x402 payment from a one-time wallet, 0 links", run: testnetPayment },
-      { name: "tx hash shown in the UI", run: pending("panel built (Shield mode → Run a real Shield session); needs a funded relayer + RAIL_ADDRESS + RELAYER_URL") },
+      { name: "tx hash shown in the UI (Playwright: Shield panel renders Basescan links)", run: playwright },
     ],
   },
   {

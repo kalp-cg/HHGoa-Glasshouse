@@ -20,6 +20,6 @@ export default defineConfig({
     timeout: 240_000,
     reuseExistingServer: false,
     // blank store settings so the test never touches the real Upstash from .env
-    env: { OFFLINE_MODE: "true", GLASSHOUSE_STORE_FILE: "test-results/e2e-store.json", UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "", GROQ_API_KEY: "", ANTHROPIC_API_KEY: "" },
+    env: { OFFLINE_MODE: "true", GLASSHOUSE_STORE_FILE: "test-results/e2e-store.json", UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "", GROQ_API_KEY: "", ANTHROPIC_API_KEY: "", RELAYER_PRIVATE_KEY: "", RAIL_ADDRESS: "" },
   },
 });

@@ -13,7 +13,9 @@
     "demo:check": "tsx scripts/demo-check.ts",
     "test:parity": "pnpm --filter @glasshouse/tigergraph parity",
     "tg:setup": "pnpm --filter @glasshouse/tigergraph tg:setup",
-    "analyze:ledger": "pnpm --filter @glasshouse/engine analyze:ledger"
+    "analyze:ledger": "pnpm --filter @glasshouse/engine analyze:ledger",
+    "shield:export": "node --env-file-if-exists=.env --import tsx scripts/export-testnet.ts",
+    "shield:fund": "bash scripts/shield-fund.sh"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

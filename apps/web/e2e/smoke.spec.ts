@@ -28,3 +28,17 @@ for (const path of ["/", "/?fixtures=1"]) {
     expect(errors).toEqual([]);
   });
 }
+
+test("Shield session panel shows the testnet transaction hashes as explorer links", async ({ page }) => {
+  const funded = `0x${"ab".repeat(32)}`, paid = `0x${"cd".repeat(32)}`;
+  // stand-in for the live route, so the UI test spends no testnet money
+  await page.route("**/api/shield/session", (route) =>
+    route.fulfill({ json: { wallet: `0x${"11".repeat(20)}`, funded_tx: funded, payment_tx: paid } }));
+  await page.goto("/");
+  await page.getByRole("radio", { name: "Shield mode" }).click();
+  await page.getByRole("button", { name: "Run a real Shield session" }).click();
+  const links = page.getByTestId("shield-tx");
+  await expect(links).toHaveCount(2);
+  await expect(links.nth(0)).toHaveAttribute("href", `https://sepolia.basescan.org/tx/${funded}`);
+  await expect(links.nth(1)).toHaveAttribute("href", `https://sepolia.basescan.org/tx/${paid}`);
+});
