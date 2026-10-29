@@ -56,7 +56,7 @@ export default function RealPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat value={`${t.give_away_time_zone_pct}%`} label="give away their time zone from when payments stop at night" />
         <Stat value={`${t.funded_from_exchange_like_wallet_pct}%`} label="were funded straight from an exchange-like wallet, which likely knows the owner" />
-        <Stat value={`${t.linked_to_another_wallet_pct}%`} label="are linked to another wallet of the same owner" />
+        <Stat value={`${t.linked_to_another_wallet_pct}%`} label="were topped up by another private wallet, which the funding rule treats as the same owner" />
         <Stat value={`${t.show_a_life_signal_pct}%`} label="show what they are working on (a life signal)" />
         <Stat value={`${t.run_around_the_clock_pct}%`} label="pay around the clock, like a machine with no sleep gap" tone="plain" />
         <Stat value={String(t.median_payments_per_day)} label="paid calls per day for a typical wallet" tone="plain" />
