@@ -6,6 +6,8 @@ import { createWalletClient, custom, type EIP1193Provider } from "viem";
 import type { ProfileFacts } from "@glasshouse/engine";
 import { ProfilePanel, SleepStrip } from "../_demo/Panels";
 import { Alerts } from "./Alerts";
+import { ServerSign } from "./ServerSign";
+import { useInjectedWallets } from "./wallets";
 
 declare global {
   interface Window { ethereum?: EIP1193Provider }
@@ -57,12 +59,13 @@ function ProButton() {
 
 export function Audit() {
   const [step, setStep] = useState<Step>({ s: "idle" });
+  const wallets = useInjectedWallets();
 
-  async function run() {
+  async function run(provider: EIP1193Provider | undefined = window.ethereum) {
     try {
-      if (!window.ethereum) throw new Error("No wallet found in this browser. Open this page in MetaMask or Coinbase Wallet, or install a wallet extension.");
+      if (!provider) throw new Error("No wallet found in this browser. Open this page in MetaMask or Coinbase Wallet, install a wallet extension, or sign from your server below.");
       setStep({ s: "connecting" });
-      const wallet = createWalletClient({ transport: custom(window.ethereum) });
+      const wallet = createWalletClient({ transport: custom(provider) });
       const [address] = await wallet.requestAddresses();
       if (!address) throw new Error("The wallet didn't share an address.");
       const c = await postJson<{ message: string; nonce: string }>("/api/audit/challenge", { address });
@@ -92,13 +95,29 @@ export function Audit() {
         </p>
         <p className="mt-3 max-w-2xl text-lg font-medium">You can only audit a wallet you own. We never show anyone else&apos;s profile.</p>
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <button onClick={run} disabled={busy}
-            className="rounded-full bg-accent px-7 py-3 text-lg font-semibold text-white disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-            {step.s === "connecting" ? "Connecting…" : step.s === "signing" ? "Check your wallet to sign…" : step.s === "reading" ? "Reading your payments…" : "Connect wallet and audit"}
-          </button>
+          {busy ? (
+            <p className="rounded-full bg-accent px-7 py-3 text-lg font-semibold text-white" role="status">
+              {step.s === "connecting" ? "Connecting…" : step.s === "signing" ? "Check your wallet to sign…" : "Reading your payments…"}
+            </p>
+          ) : wallets.length > 0 ? (
+            wallets.map((w) => (
+              <button key={w.id} type="button" onClick={() => run(w.provider)}
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {w.icon && <img src={w.icon} alt="" width={24} height={24} className="rounded" />}
+                Audit with {w.name}
+              </button>
+            ))
+          ) : (
+            <button type="button" onClick={() => run()}
+              className="rounded-full bg-accent px-7 py-3 text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+              Connect wallet and audit
+            </button>
+          )}
           <Counter />
         </div>
-        <p className="mt-3 text-base text-ink-2">Signing is free and moves no funds. Reading a day of history can take up to a minute.</p>
+        <p className="mt-3 text-base text-ink-2">Signing is free and moves no funds. Works with ordinary and smart wallets (Coinbase Smart Wallet, Safe). Reading a day of history can take up to a minute.</p>
+        <ServerSign post={postJson} onDone={(address, facts) => setStep({ s: "done", address, facts })} onError={(message) => setStep({ s: "error", message })} />
       </section>
 
       {step.s === "error" && (

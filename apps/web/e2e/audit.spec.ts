@@ -65,3 +65,57 @@ test("audit page: a wallet with no agent payments gets an honest empty result, n
   await expect(page.getByText("No agent payments found.")).toBeVisible();
   await expect(page.getByText(/rail/i)).toHaveCount(0);
 });
+
+const emptyProfile = (addr: string) => ({
+  mode: "open", seed_wallet: addr, wallets: [{ addr, role: "personal" }], links: [], identity_anchor: null, timezone: null,
+  hourly: Array(48).fill(0), signals: [], spend: { payments: 0, usdc: 0 }, linkability: { traced: 0, total: 0 }, anonymity_set: null, source: "base-mainnet",
+});
+
+test("audit page: an agent wallet on a server signs the challenge there and pastes only the signature", async ({ page }) => {
+  const agent = privateKeyToAccount(`0x${"42".repeat(32)}`);
+  let sent: { address?: string; signature?: string; nonce?: string } = {};
+  await page.route("**/api/audit", async (route) => {
+    sent = JSON.parse(route.request().postData() ?? "{}");
+    await route.fulfill({ json: emptyProfile(agent.address.toLowerCase()) });
+  });
+  await page.goto("/audit");
+  await page.getByText("Agent wallet on a server? Sign without a browser wallet").click();
+  await page.getByLabel("Agent wallet address").fill(agent.address);
+  await page.getByRole("button", { name: "Get challenge" }).click();
+  const message = await page.getByTestId("challenge-text").innerText();
+  expect(message).toContain(agent.address.toLowerCase());
+  await expect(page.getByText(/cast wallet sign --private-key "\$AGENT_PRIVATE_KEY"/)).toBeVisible();
+  await expect(page.getByText("Never paste a private key here.")).toBeVisible();
+  const signature = await agent.signMessage({ message }); // what `cast wallet sign` prints, done where the key lives
+  await page.getByLabel("3. Paste the signature it prints").fill(signature);
+  await page.getByRole("button", { name: "Audit this wallet" }).click();
+  await expect(page.getByText("No agent payments found.")).toBeVisible();
+  expect(sent.signature).toBe(signature);
+  expect(sent.address?.toLowerCase()).toBe(agent.address.toLowerCase());
+});
+
+test("audit page: installed wallets announced by EIP-6963 each get their own button", async ({ page }) => {
+  const owner = privateKeyToAccount(`0x${"42".repeat(32)}`);
+  await page.exposeFunction("__sign3", async (hexMessage: string) => owner.signMessage({ message: { raw: hexMessage as `0x${string}` } }));
+  await page.addInitScript((address: string) => {
+    const provider = {
+      request: async ({ method, params }: { method: string; params?: unknown[] }) => {
+        if (method === "eth_requestAccounts" || method === "eth_accounts") return [address];
+        if (method === "personal_sign") return (window as unknown as { __sign3: (m: string) => Promise<string> }).__sign3(params![0] as string);
+        throw new Error(`unsupported ${method}`);
+      },
+      on: () => undefined, removeListener: () => undefined,
+    };
+    const announce = () => window.dispatchEvent(new CustomEvent("eip6963:announceProvider", {
+      detail: Object.freeze({ info: { uuid: "test-uuid", name: "Test Wallet", icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>", rdns: "dev.test.wallet" }, provider }),
+    }));
+    window.addEventListener("eip6963:requestProvider", announce);
+  }, owner.address);
+  await page.route("**/api/audit", (route) => route.fulfill({ json: emptyProfile(owner.address.toLowerCase()) }));
+  await page.goto("/audit");
+  const button = page.getByRole("button", { name: "Audit with Test Wallet" });
+  await expect(button).toBeVisible();
+  await expect(page.getByRole("button", { name: "Connect wallet and audit" })).toHaveCount(0);
+  await button.click();
+  await expect(page.getByText("No agent payments found.")).toBeVisible();
+});
