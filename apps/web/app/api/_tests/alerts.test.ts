@@ -16,6 +16,15 @@ describe("alerts helpers", () => {
     expect(chatsFrom({ ok: true, result: [] })).toEqual([]);
   });
 
+  it("chatsFrom reads the real list-messages answer (a bare array of Telegram updates; seen on a real connection)", () => {
+    const real = [
+      { update_id: 1, message: { message_id: 1, from: { id: 111, is_bot: false, first_name: "Ada", username: "ada" }, chat: { id: 111, first_name: "Ada", last_name: "L", username: "ada", type: "private" }, text: "/start" } },
+      { update_id: 2, message: { message_id: 2, from: { id: 111, is_bot: false, first_name: "Ada" }, chat: { id: 111, first_name: "Ada", last_name: "L", username: "ada", type: "private" }, text: "hiii" } },
+    ];
+    expect(chatsFrom(real)).toEqual([{ value: "111", label: "Ada L" }]);
+    expect(chatsFrom({ message: "No messages found in your telegram bot" })).toEqual([]);
+  });
+
   it("leak keys: the time zone and each signal", () => {
     expect(leakKeys(facts)).toEqual(["tz:UTC+05:30", "signal:Travel", "signal:Career", "signal:Health", "signal:Finance", "signal:Legal"]);
   });

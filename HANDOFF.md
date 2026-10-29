@@ -241,3 +241,9 @@ Done:
 Needs Kalp:
 - **TigerGraph workspace auto-paused** ("Auto start is not enabled for this workspace"). Resume `MyWorkspace` at tgcloud.io (Workspace → Actions) and, if offered, turn on auto-start. Data persists. Until then the API uses the engine (`OFFLINE_MODE` behaviour), and `demo:check` shows parity FAIL because TigerGraph is unreachable, not because the answers differ.
 - Test USDC for `0x7362B05CC0f89a093A235E4f2C3B63328E9d845F` (CDP faucet → Base Sepolia → USDC).
+
+## Claude · 29 Oct, Telegram alerts verified on a real connection
+- Test bot connected (viaSocket test user `apps-api-test-user`). Both actions ran for real through the app's own code:
+  - `list-messages` returns a bare array of Telegram updates; the chat is read from `message.chat`.
+  - `send-message` sent the leak alert to Kalp's Telegram; an identical second audit sent nothing (dedupe works).
+- Real response shape saved as a unit test. viaSocket skill "Finished when" lines all hold; `finished: ok` sent.
