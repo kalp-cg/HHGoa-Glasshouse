@@ -129,3 +129,27 @@ describe("not configured yet → clear 503, never a crash", () => {
     expect((await res.json()).error).toMatch(/RELAYER_URL/);
   });
 });
+
+describe("stats without a shared store (fresh Vercel deploy)", () => {
+  it("answers zeros instead of an error", async () => {
+    vi.resetModules();
+    const saved = { v: process.env.VERCEL, u: process.env.UPSTASH_REDIS_REST_URL, k: process.env.KV_REST_API_URL };
+    process.env.VERCEL = "1";
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.KV_REST_API_URL;
+    try {
+      const { GET } = await import("../stats/route");
+      const res = await GET();
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ audits: 0, leaking_timezone: 0 });
+      const { POST } = await import("../audit/challenge/route");
+      const challengeRes = await POST(new Request("http://localhost/x", { method: "POST", body: JSON.stringify({ address: "0x1111111111111111111111111111111111111111" }) }));
+      expect(challengeRes.status).toBe(503);
+    } finally {
+      if (saved.v === undefined) delete process.env.VERCEL; else process.env.VERCEL = saved.v;
+      if (saved.u) process.env.UPSTASH_REDIS_REST_URL = saved.u;
+      if (saved.k) process.env.KV_REST_API_URL = saved.k;
+      vi.resetModules();
+    }
+  });
+});
