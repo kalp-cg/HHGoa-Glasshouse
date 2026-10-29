@@ -9,7 +9,15 @@ const SYSTEM = `You explain what a stranger can learn from an AI agent's public 
 You receive a JSON object of facts about one person. Write exactly 4 sentences in plain English, addressed to that person as "you".
 Use only the facts given; never invent numbers, names, places or services.
 Say "likely" for anything inferred (identity via an exchange, time zone, life signals); state counts as facts.
-Never write wallet addresses or transaction hashes. Output only the 4 sentences.`;
+Never write wallet addresses or transaction hashes. Output only the 4 sentences.
+
+What the fields mean:
+- linkability.traced of linkability.total: how many of the person's agent payments a stranger can tie to them. If traced is 0, none can be traced to them: say that plainly. The payments still happened; they just cannot be linked.
+- mode "open": the agents paid from wallets that can be linked to the person. mode "shield": each session paid from a fresh one-time wallet.
+- anonymity_set (shield only): each payment could belong to any of that many people.
+- identity_anchor: the exchange that funded the person's wallets, which likely knows their real name. Mention it only if it is not null and traced is above 0.
+- timezone and signals: what a stranger could work out. If they are null or empty, say nothing could be worked out.
+- spend: total payments and USDC among the traced ones.`;
 
 const list = (items: string[]) =>
   items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
@@ -44,13 +52,16 @@ export function templateNarrative(f: ProfileFacts): string {
 
 // Groq's OpenAI-compatible chat API (free tier): https://console.groq.com/docs/api-reference
 async function groqNarrative(facts: ProfileFacts): Promise<string> {
+  const model = process.env.NARRATIVE_MODEL || "openai/gpt-oss-120b";
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
     body: JSON.stringify({
-      model: process.env.NARRATIVE_MODEL || "llama-3.3-70b-versatile",
+      model,
       temperature: 0.3,
-      max_completion_tokens: 400,
+      max_completion_tokens: 900,
+      // gpt-oss models are reasoning models: without a low effort they can spend every token thinking and answer nothing
+      ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}),
       messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify(facts) }],
     }),
     signal: AbortSignal.timeout(20_000),
