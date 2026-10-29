@@ -1,9 +1,6 @@
 // Plain-English write-up of ProfileFacts. Input is the facts object and nothing else (AGENTS.md rule 5).
-// Claude API usage per the Anthropic TypeScript SDK docs (@anthropic-ai/sdk 1.3.0).
-import Anthropic from "@anthropic-ai/sdk";
+import { createHash } from "node:crypto";
 import type { ProfileFacts } from "@glasshouse/engine";
-
-const MODEL = "claude-opus-5-5";
 
 const SYSTEM = `You explain what a stranger can learn from an AI agent's public on-chain payments.
 You receive a JSON object of facts about one person. Write exactly 4 sentences in plain English, addressed to that person as "you".
@@ -25,6 +22,14 @@ const list = (items: string[]) =>
 // Deterministic write-up: used offline, without a key, or if the API call fails.
 export function templateNarrative(f: ProfileFacts): string {
   const { traced, total } = f.linkability;
+  if (total === 0) {
+    return [
+      "We found no x402-style payments from this wallet in the period we read.",
+      "With no payments, a stranger has nothing to link to you.",
+      "There is no daily rhythm to read and no life signal to infer.",
+      "Audit again once your agent has been paying for a while.",
+    ].join(" ");
+  }
   if (traced === 0) {
     return [
       `None of your agents' ${total} paid API calls can be traced back to you.`,
@@ -71,34 +76,26 @@ async function groqNarrative(facts: ProfileFacts): Promise<string> {
   return body.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-async function claudeNarrative(facts: ProfileFacts): Promise<string> {
-  const client = new Anthropic({ timeout: 30_000, maxRetries: 1 });
-  const response = await client.beta.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    output_config: { effort: "low" },
-    system: SYSTEM,
-    messages: [{ role: "user", content: JSON.stringify(facts) }],
-  });
-  if (response.stop_reason === "refusal") return "";
-  return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ").trim();
-}
+// The demo's facts never change, so each distinct write-up is generated once per server instance, not per visit.
+const cache = new Map<string, string>();
+const CACHE_MAX = 50;
 
-// Provider order: Groq (free) if GROQ_API_KEY, else Claude if ANTHROPIC_API_KEY, else the template.
-// A real person's audit (source "base-mainnet") is never sent to an outside model: it always gets the template.
-export async function narrative(facts: ProfileFacts): Promise<{ text: string; source: "groq" | "claude" | "template" }> {
+// Groq (free) when GROQ_API_KEY is set, else the template. A real person's audit (source "base-mainnet") is never
+// sent to an outside model: it always gets the template.
+export async function narrative(facts: ProfileFacts): Promise<{ text: string; source: "groq" | "template" }> {
   const template = { text: templateNarrative(facts), source: "template" as const };
-  if (facts.source !== "synthetic") return template;
-  const provider = process.env.GROQ_API_KEY ? "groq" : process.env.ANTHROPIC_API_KEY ? "claude" : null;
-  if (!provider) return template;
+  if (facts.source !== "synthetic" || !process.env.GROQ_API_KEY) return template;
+  const key = createHash("sha256").update(JSON.stringify(facts)).digest("hex");
+  const hit = cache.get(key);
+  if (hit) return { text: hit, source: "groq" };
   try {
-    const text = provider === "groq" ? await groqNarrative(facts) : await claudeNarrative(facts);
-    return text ? { text, source: provider } : template;
+    const text = await groqNarrative(facts);
+    if (!text) return template;
+    if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
+    cache.set(key, text);
+    return { text, source: "groq" };
   } catch (err) {
-    if (err instanceof Anthropic.APIError) console.warn(`Claude API ${err.status}: ${err.message}`);
-    else console.warn(`${provider} write-up failed: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(`Groq write-up failed: ${err instanceof Error ? err.message : String(err)}`);
     return template;
   }
 }

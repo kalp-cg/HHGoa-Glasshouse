@@ -3,7 +3,7 @@
 import "../_lib/env";
 import { fetchAgentTransfers, verifyOwnership } from "@glasshouse/chain";
 import { notifyLeak } from "../_lib/alerts";
-import { auditProfile, blockRange, consumeChallenge, parseAddress, recordAudit, sessionCookie, signSession, userIdFor } from "../_lib/audit";
+import { auditBudget, auditProfile, blockRange, consumeChallenge, parseAddress, recordAudit, sessionCookie, signSession, userIdFor } from "../_lib/audit";
 import { errorResponse, HttpError } from "../_lib/http";
 
 export const runtime = "nodejs";
@@ -21,8 +21,9 @@ export async function POST(req: Request): Promise<Response> {
       throw new HttpError(401, "That signature isn't from this wallet, so we can't show its audit: you can only audit a wallet you own.");
     }
 
+    await auditBudget();
     const ledger = await fetchAgentTransfers(address, await blockRange());
-    const facts = auditProfile(ledger, address);
+    const facts = await auditProfile(ledger, address);
     await recordAudit(address, facts);
     const alert = await notifyLeak(userIdFor(address), facts, new URL(req.url).origin);
 

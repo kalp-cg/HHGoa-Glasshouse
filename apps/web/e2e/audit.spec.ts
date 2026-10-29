@@ -39,3 +39,29 @@ test("audit page: no wallet in the browser → clear instructions", async ({ pag
   await page.getByRole("button", { name: "Connect wallet and audit" }).click();
   await expect(page.getByTestId("audit-error")).toContainText("No wallet found");
 });
+
+test("audit page: a wallet with no agent payments gets an honest empty result, not the Shield message", async ({ page }) => {
+  const owner = privateKeyToAccount(`0x${"42".repeat(32)}`);
+  await page.exposeFunction("__sign2", async (hexMessage: string) => owner.signMessage({ message: { raw: hexMessage as `0x${string}` } }));
+  await page.addInitScript((address: string) => {
+    (window as unknown as { ethereum: unknown }).ethereum = {
+      request: async ({ method, params }: { method: string; params?: unknown[] }) => {
+        if (method === "eth_requestAccounts" || method === "eth_accounts") return [address];
+        if (method === "personal_sign") return (window as unknown as { __sign2: (m: string) => Promise<string> }).__sign2(params![0] as string);
+        throw new Error(`unsupported ${method}`);
+      },
+      on: () => undefined,
+      removeListener: () => undefined,
+    };
+  }, owner.address);
+  // stand-in for the chain read: an empty real-chain profile, exactly what /api/audit returns for such a wallet
+  await page.route("**/api/audit", (route) => route.fulfill({ json: {
+    mode: "open", seed_wallet: owner.address.toLowerCase(), wallets: [{ addr: owner.address.toLowerCase(), role: "personal" }],
+    links: [], identity_anchor: null, timezone: null, hourly: Array(48).fill(0), signals: [],
+    spend: { payments: 0, usdc: 0 }, linkability: { traced: 0, total: 0 }, anonymity_set: null, source: "base-mainnet",
+  } }));
+  await page.goto("/audit");
+  await page.getByRole("button", { name: "Connect wallet and audit" }).click();
+  await expect(page.getByText("No agent payments found.")).toBeVisible();
+  await expect(page.getByText(/rail/i)).toHaveCount(0);
+});

@@ -61,15 +61,23 @@ export function useDemoData(): Load {
   return load;
 }
 
+// One write-up per profile per visit: flipping the switch back and forth does not ask again.
+const written = new WeakMap<ProfileFacts, string>();
+
 export function useNarrative(profile: ProfileFacts | undefined): string | null {
   const [text, setText] = useState<string | null>(null);
   useEffect(() => {
     if (!profile) return;
+    const known = written.get(profile);
+    if (known !== undefined) return setText(known);
     let alive = true;
     setText(null);
     fetch("/api/narrative", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) })
       .then((r) => r.json())
-      .then((b: { text?: string }) => alive && setText(b.text ?? ""))
+      .then((b: { text?: string }) => {
+        if (b.text) written.set(profile, b.text);
+        if (alive) setText(b.text ?? "");
+      })
       .catch(() => alive && setText(""));
     return () => {
       alive = false;

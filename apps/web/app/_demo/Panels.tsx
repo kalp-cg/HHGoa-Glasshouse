@@ -15,10 +15,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function ProfilePanel({ p }: { p: ProfileFacts }) {
   const shield = p.linkability.traced === 0;
+  // a real wallet with no agent payments: nothing to link, and no rail involved
+  const nothingFound = p.source === "base-mainnet" && p.linkability.total === 0;
   return (
     <section aria-labelledby="profile-h" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
       <h2 id="profile-h" className="text-xl font-semibold">What a stranger can work out about you</h2>
-      {shield ? (
+      {nothingFound ? (
+        <div className="mt-4 rounded-xl bg-surface-2 p-4">
+          <p className="text-2xl font-semibold">No agent payments found.</p>
+          <p className="mt-1 text-lg text-ink-2">
+            This wallet made no x402-style payments in the period we read, so there is nothing for a stranger to link.
+            Audit again once your agent has been paying for a while.
+          </p>
+        </div>
+      ) : shield ? (
         <div className="mt-4 rounded-xl bg-safe-soft p-4 text-safe">
           <p className="text-2xl font-semibold">Nothing that points to you.</p>
           <p className="mt-1 text-lg">
@@ -31,7 +41,7 @@ export function ProfilePanel({ p }: { p: ProfileFacts }) {
         <dl className="mt-4">
           <Row label="Who you are">
             {p.identity_anchor
-              ? <>Funded from <strong>{p.identity_anchor.exchange_label}</strong>, which knows your real name.</>
+              ? <>Funded from <strong>{p.identity_anchor.exchange_label}</strong>, which likely knows your real name.</>
               : "No exchange ties these wallets to a name."}
           </Row>
           <Row label="Where you live">

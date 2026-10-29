@@ -12,7 +12,6 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "1.3.0",
     "@glasshouse/chain": "workspace:*",
     "@glasshouse/engine": "workspace:*",
     "@glasshouse/tigergraph": "workspace:*",

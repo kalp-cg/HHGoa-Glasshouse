@@ -11,7 +11,8 @@ export async function GET(req: Request): Promise<Response> {
   try {
     const { wallet, mode } = walletAndMode(req);
     const { graph, source } = await graphFor(wallet, mode);
-    return Response.json(graph, { headers: { "x-glasshouse-links": source } });
+    // synthetic demo data never changes: let the CDN serve repeat visits
+    return Response.json(graph, { headers: { "x-glasshouse-links": source, "cache-control": "public, s-maxage=300, stale-while-revalidate=86400" } });
   } catch (err) {
     return errorResponse(err);
   }

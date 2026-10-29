@@ -287,3 +287,16 @@ Needs Kalp:
 - **Gate 4:** `DODO_PRODUCT_ID` set (local + Vercel). The live `/api/checkout` creates a Dodo test-mode checkout session; `demo:check` now calls it for real.
 - Honest caveat: the faucet gave 1 USDC, but `Rail.deposit()` takes exactly 10. I sent the 1 USDC to the Rail with a plain transfer to run this session. For the proper deposit flow (and a non-zero `depositorCount`), get 10+ test USDC (faucet.circle.com gives 20), then run `pnpm shield:fund`.
 - Rotate after the demo (all were pasted into chat): Vercel token, Alchemy key, Upstash token, Groq key, Dodo key, viaSocket embed secret, TigerGraph secret.
+
+## Claude · 29 Oct, product review fixes
+Reviewed the whole product for simplicity and correctness; fixed:
+- **Empty real wallet**: the audit showed the Shield "rail" message (and the template write-up told the rail story). It now says plainly that no agent payments were found.
+- **Exchange taken for "your wallet"** in real audits: a funder that has sent 1,000+ transactions is labelled as the likely exchange, so it becomes the identity anchor instead of being linked to the person (one `eth_getTransactionCount` per funder, at most 20).
+- Identity wording is now "likely knows your real name" (it is an inference).
+- The counter counts only wallets with at least one agent payment, so throwaway wallets can't inflate it.
+- Signed audits are capped per hour (`AUDITS_PER_HOUR`, default 60) to protect the RPC quota.
+- Groq write-ups are cached per distinct profile (server) and per visit (browser); the demo's profile and graph get CDN cache headers.
+- Removed the unused Anthropic path and `@anthropic-ai/sdk` (Groq or the template only).
+- The mode switch is two toggle buttons (`aria-pressed`) instead of a half-implemented radio group.
+- README rewritten for the finished product.
+- Tests: 110 unit, 18 browser; `demo:check` 17/17.

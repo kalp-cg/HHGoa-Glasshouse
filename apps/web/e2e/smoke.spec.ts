@@ -14,7 +14,7 @@ for (const path of ["/", "/?fixtures=1"]) {
     await expect(page.getByTestId("graph")).toHaveAttribute("data-ready", "open");
     await page.screenshot({ path: `test-results/${info.project.name}${path === "/" ? "" : "-fixtures"}-open.png`, fullPage: true });
 
-    await page.getByRole("radio", { name: "Shield mode" }).click();
+    await page.getByRole("button", { name: "Shield mode" }).click();
     await expect(traced).toContainText("0");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("none of them");
     await expect(page.getByTestId("graph")).toHaveAttribute("data-ready", "shield");
@@ -35,7 +35,7 @@ test("Shield session panel shows the testnet transaction hashes as explorer link
   await page.route("**/api/shield/session", (route) =>
     route.fulfill({ json: { wallet: `0x${"11".repeat(20)}`, funded_tx: funded, payment_tx: paid } }));
   await page.goto("/");
-  await page.getByRole("radio", { name: "Shield mode" }).click();
+  await page.getByRole("button", { name: "Shield mode" }).click();
   await page.getByRole("button", { name: "Run a real Shield session" }).click();
   const links = page.getByTestId("shield-tx");
   await expect(links).toHaveCount(2);

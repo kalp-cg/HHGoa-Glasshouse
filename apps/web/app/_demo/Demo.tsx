@@ -11,11 +11,11 @@ function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
     { value: "shield", label: "Shield mode" },
   ];
   return (
-    <div role="radiogroup" aria-label="Payment mode" className="inline-flex rounded-full border border-line bg-surface p-1 shadow-sm">
+    <div role="group" aria-label="Payment mode" className="inline-flex rounded-full border border-line bg-surface p-1 shadow-sm">
       {options.map((o) => {
         const on = mode === o.value;
         return (
-          <button key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)}
+          <button key={o.value} type="button" aria-pressed={on} onClick={() => onChange(o.value)}
             className={`rounded-full px-5 py-2.5 text-base font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:px-7 sm:text-lg ${
               on ? (o.value === "open" ? "bg-exposed text-white" : "bg-safe text-white") : "text-ink-2 hover:text-ink"}`}>
             {o.label}

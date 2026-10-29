@@ -58,22 +58,46 @@ export function labelSellers(ledger: Ledger, address: Address): Ledger {
   };
 }
 
-export function auditProfile(ledger: Ledger, address: Address): ProfileFacts {
-  const labelled = labelSellers(ledger, address);
+// A wallet that has sent this many transactions is an exchange or a service, not a person's own wallet.
+const HIGH_VOLUME_SENDS = 1000;
+const MAX_FUNDERS_CHECKED = 20;
+
+// Who funded the wallet? Under the funding rule an unlabelled funder would count as the person's own wallet, which
+// is wrong for an exchange's hot wallet. A high-volume funder is labelled as the likely exchange instead, so it
+// becomes the identity anchor rather than "your wallet".
+export async function labelFunders(ledger: Ledger, address: Address): Promise<Ledger> {
+  const kind = new Map(ledger.wallets.map((w) => [w.addr, w.kind]));
+  const funders = [...new Set(ledger.transfers.filter((t) => t.to === address && t.from !== address).map((t) => t.from))]
+    .filter((a) => kind.get(a) === "")
+    .slice(0, MAX_FUNDERS_CHECKED);
+  const sends = await Promise.all(funders.map((a) =>
+    rpc("eth_getTransactionCount", [a, "latest"]).then((n) => Number(BigInt(n)), () => 0)));
+  const busy = new Set(funders.filter((_, i) => sends[i]! >= HIGH_VOLUME_SENDS));
+  return {
+    ...ledger,
+    wallets: ledger.wallets.map((w) =>
+      busy.has(w.addr) ? { ...w, kind: "exchange", label: "a high-volume wallet (probably an exchange)", category: null } : w),
+  };
+}
+
+export async function auditProfile(ledger: Ledger, address: Address): Promise<ProfileFacts> {
+  const labelled = await labelFunders(labelSellers(ledger, address), address);
   return profile(labelled, analyze(labelled), address, { mode: "open", source: "base-mainnet" });
 }
 
-async function latestBlock(): Promise<bigint> {
+async function rpc(method: string, params: unknown[]): Promise<string> {
   const res = await fetch(process.env.BASE_RPC_URL || "https://mainnet.base.org", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
     signal: AbortSignal.timeout(10_000),
   });
   const body = (await res.json()) as { result?: string; error?: { message: string } };
   if (!body.result) throw new HttpError(502, `Base RPC: ${body.error?.message ?? res.status}`);
-  return BigInt(body.result);
+  return body.result;
 }
+
+const latestBlock = async () => BigInt(await rpc("eth_blockNumber", []));
 
 // AUDIT_DAYS (default 1) of history. Public RPCs rate-limit eth_getLogs; set BASE_RPC_URL to a provider for more.
 export async function blockRange(): Promise<{ fromBlock: bigint; toBlock: bigint }> {
@@ -82,8 +106,18 @@ export async function blockRange(): Promise<{ fromBlock: bigint; toBlock: bigint
   return { fromBlock: toBlock - BigInt(Math.round(days * BLOCKS_PER_DAY)), toBlock };
 }
 
-// Totals only. Wallets are deduped by their hash; nothing else about them is kept.
+// Each audit reads the chain, so signed audits are capped per hour to protect the RPC quota.
+export async function auditBudget(): Promise<void> {
+  const cap = Number(process.env.AUDITS_PER_HOUR ?? 60);
+  if ((await store().incr(`audit:hour:${Math.floor(Date.now() / 3_600_000)}`)) > cap) {
+    throw new HttpError(429, "Glasshouse is busy right now; please try your audit again in a few minutes");
+  }
+}
+
+// Totals only. Wallets are deduped by their hash; nothing else about them is kept. Only agent wallets count (at
+// least one payment), so throwaway wallets cannot inflate the number.
 export async function recordAudit(address: Address, facts: ProfileFacts): Promise<void> {
+  if (facts.spend.payments === 0) return;
   const id = userIdFor(address);
   const s = store();
   if (await s.sadd("audited", id)) await s.incr("stats:audits");

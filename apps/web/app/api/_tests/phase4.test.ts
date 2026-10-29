@@ -76,6 +76,9 @@ describe("audit", () => {
     expect(p.linkability).toEqual({ traced: 110, total: 110 });
     expect(p.timezone?.label).toBe("UTC+05:30");
     expect(p.signals).toEqual([]); // real sellers have no known category
+    // its funder has sent 1,000+ transactions (the stubbed RPC says so): an exchange, not "your wallet"
+    expect(p.identity_anchor?.exchange_label).toMatch(/probably an exchange/);
+    expect(p.wallets).toEqual([{ addr: ownerAddr, role: "agent" }]);
     expect(res.headers.get("set-cookie")).toMatch(/^gh_session=.+HttpOnly/);
     expect(res.headers.get("x-glasshouse-alert")).toBe("not-connected");
   });
@@ -98,6 +101,15 @@ describe("audit", () => {
     const c = await (await post(challenge, { address: stranger.address })).json() as { message: string; nonce: string };
     const signature = await owner.signMessage({ message: c.message });
     expect((await post(audit, { address: ownerAddr, signature, nonce: c.nonce })).status).toBe(401);
+  });
+
+  it("a wallet with no agent payments gets an honest empty audit and is not counted", async () => {
+    const { fetchAgentTransfers } = await import("@glasshouse/chain");
+    vi.mocked(fetchAgentTransfers).mockResolvedValueOnce({ seed: 0, start_ts: 0, days: 1, wallets: [], transfers: [] });
+    const fresh = privateKeyToAccount(`0x${"55".repeat(32)}`);
+    const { res } = await signedAudit(fresh, fresh.address.toLowerCase());
+    expect(res.status).toBe(200);
+    expect((await res.json()).linkability).toEqual({ traced: 0, total: 0 });
   });
 
   it("stats are totals only, deduped per wallet", async () => {
@@ -167,12 +179,29 @@ describe("write-up privacy", () => {
       const demo = { ...real, source: "synthetic" } as ProfileFacts;
       expect(await narrative(demo)).toEqual({ text: "LLM TEXT", source: "groq" });
       expect(f.mock.calls[0]![0]).toBe("https://api.groq.com/openai/v1/chat/completions");
+      // the same facts again: served from the cache, no second call
+      expect(await narrative(demo)).toEqual({ text: "LLM TEXT", source: "groq" });
+      expect(f).toHaveBeenCalledTimes(1);
+      // different facts and Groq down: falls back to the template
       f.mockResolvedValueOnce(new Response("nope", { status: 503 }));
-      expect((await narrative(demo)).source).toBe("template");
+      expect((await narrative({ ...demo, spend: { payments: 1, usdc: 1 } })).source).toBe("template");
     } finally {
       process.env.GROQ_API_KEY = "";
       vi.stubGlobal("fetch", vi.fn(async () => Response.json({ jsonrpc: "2.0", id: 1, result: "0x1000000" })));
       vi.resetModules();
+    }
+  });
+});
+
+describe("audit budget", () => {
+  it("refuses signed audits beyond the hourly cap with a friendly 429", async () => {
+    process.env.AUDITS_PER_HOUR = "0";
+    try {
+      const { res } = await signedAudit();
+      expect(res.status).toBe(429);
+      expect((await res.json()).error).toMatch(/try your audit again/);
+    } finally {
+      delete process.env.AUDITS_PER_HOUR;
     }
   });
 });
