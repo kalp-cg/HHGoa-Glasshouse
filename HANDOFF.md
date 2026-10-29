@@ -247,3 +247,11 @@ Needs Kalp:
   - `list-messages` returns a bare array of Telegram updates; the chat is read from `message.chat`.
   - `send-message` sent the leak alert to Kalp's Telegram; an identical second audit sent nothing (dedupe works).
 - Real response shape saved as a unit test. viaSocket skill "Finished when" lines all hold; `finished: ok` sent.
+
+## Claude · 29 Oct, deployed
+- **Public URL: https://glasshouse-eta.vercel.app** (Vercel project `glasshouse`, team kalp-cgs-projects, root `apps/web`, Node 22, auto-deploys from GitHub `main`). Live checks: `/`, `/audit`, `/api/stats`; `/api/profile` answers through **TigerGraph** (`x-glasshouse-links: tigergraph`) in ~1 s.
+- Env vars set on Vercel (encrypted): TigerGraph, Alchemy Base RPCs, viaSocket, Dodo key, SESSION_SECRET, etc. Not sent: `RELAYER_PRIVATE_KEY`, `TG_SECRET`.
+- Fixes found while deploying: TigerGraph timeout raised to 20 s (cold function), route budget 30 s, 60 s engine fallback after a TigerGraph failure, explicit 503 when the shared store is missing.
+- Still needed on Vercel: **Upstash** REST URL + token (audits need a shared store; `/api/audit/challenge` returns 503 until then) and **`DODO_PRODUCT_ID`**. Add to `.env`; I copy them to Vercel and redeploy.
+- TigerGraph token expires **4 Nov**. Refresh: README → TigerGraph step 2, then update `TG_TOKEN` on Vercel.
+- Kalp: rotate the Vercel token and the Alchemy key after the demo (both were pasted into chat).

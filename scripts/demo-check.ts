@@ -78,6 +78,17 @@ function phase4(): Result {
   return (phase4Result ??= command("pnpm", ["--filter", "@glasshouse/web", "exec", "vitest", "run", "app/api/_tests/phase4.test.ts"]));
 }
 
+// Vercel project "glasshouse" (kalp-cgs-projects), deployed from GitHub main
+const PUBLIC_URL = process.env.PUBLIC_URL ?? "https://glasshouse-eta.vercel.app";
+function deployed(): Result {
+  const page = spawnSync("curl", ["-fsS", "-m", "40", "-o", "/dev/null", `${PUBLIC_URL}/audit`], { encoding: "utf8" });
+  if (page.status !== 0) return { status: "FAIL", note: `${PUBLIC_URL}/audit not reachable` };
+  const stats = spawnSync("curl", ["-fsS", "-m", "40", `${PUBLIC_URL}/api/stats`], { encoding: "utf8" });
+  return stats.status === 0 && stats.stdout.includes("audits")
+    ? { status: "PASS", note: PUBLIC_URL }
+    : { status: "FAIL", note: `${PUBLIC_URL}/api/stats did not answer` };
+}
+
 const dodo = (): Result => process.env.DODO_API_KEY && process.env.DODO_PRODUCT_ID
   ? { status: "PENDING", note: "keys set; open /api/checkout on the deployed site to confirm" }
   : { status: "PENDING", note: "DODO_API_KEY / DODO_PRODUCT_ID not set in .env" };
@@ -166,7 +177,7 @@ const gates: { name: string; checks: Check[] }[] = [
   {
     name: "Gate 4 · Live with real users",
     checks: [
-      { name: "public URL deployed", run: pending("needs a Vercel login (VERCEL_TOKEN)") },
+      { name: "public URL deployed", run: deployed },
       { name: "own wallet audits; foreign wallet gets 401 (real signatures, route tests)", run: phase4 },
       { name: "usage counter increments, totals only", run: phase4 },
       { name: "Dodo checkout opens (test mode)", run: dodo },
