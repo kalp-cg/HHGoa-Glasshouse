@@ -54,6 +54,7 @@ export function Demo() {
       <header className="flex flex-wrap items-center justify-between gap-4 py-5">
         <a href="/" className="text-2xl font-bold tracking-tight">Glass<span className="text-accent">house</span></a>
         <div className="flex flex-wrap items-center gap-4">
+          <a href="/tour" className="text-base font-semibold text-ink-2 underline-offset-4 hover:underline">Tour</a>
           <a href="/real" className="text-base font-semibold text-ink-2 underline-offset-4 hover:underline">Real data</a>
           <a href="/audit" className="text-base font-semibold text-accent underline-offset-4 hover:underline">Audit your agent</a>
           <ModeSwitch mode={mode} onChange={setMode} />

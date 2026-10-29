@@ -308,3 +308,9 @@ Asked for a sandbox on public data instead of someone's real wallet. Built:
 - `pnpm real:totals` → `fixtures/real-base-totals.json`: samples x402-style payers from 30 ten-block windows over the last 24 h on Base mainnet, analyses each wallet in memory, and saves totals only (checked: no address in the file).
   - First snapshot: 1,200 payers seen, 30 analysed. 30% give away a time zone (mostly UTC-08:00), 67% linked to another wallet, 13% show a life signal (Trading, Developer), 7% funded from an exchange-like wallet, 7% pay around the clock, median 28 calls/day.
 - `/real` page shows the snapshot; a browser test fails if anything shaped like an address ever appears on it. Tests: 123 unit, 21 browser.
+
+## Claude · 29 Oct, live and reviewer-ready
+- **Live x402 pulse** (`/api/live/pulse`): x402-style payments in the latest 10 Base blocks (~20 s), cached 20 s so any number of viewers cost one RPC call. First reading: 88 payments from 57 wallets in 20 s (~264/min).
+- **Live growing sample** (`/api/live/real`): while anyone has `/real` or the tour open, the server analyses one more real payer every 2 minutes (a store lock shared by all viewers) and folds it into running totals. Only a hash per wallet is kept (no double counting); a test checks no address reaches the store.
+- **`/tour`**: a 7-screen reviewer walkthrough (← → or click, projector-sized). Live pulse → simulated person 238/238 → Shield 0/238 → the real Base Sepolia transactions (Basescan links) → live real-wallet totals → QR code to `/audit`.
+- Browser tests stand in for the live endpoints (and point `BASE_RPC_URL` nowhere) so tests never use the RPC quota. Tests: 125 unit, 24 browser (one worker).

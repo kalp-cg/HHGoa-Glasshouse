@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { mockLive } from "./live-mocks";
 
 test("real data page: totals from real Base wallets, and never an address", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  await mockLive(page);
   await page.goto("/real");
+  await expect(page.getByTestId("live-pulse")).toContainText("~264");
+  await expect(page.getByTestId("live-real")).toContainText("4");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("What real AI agents on Base give away");
   await expect(page.getByText(/give away their time zone/)).toBeVisible();
   await expect(page.getByText(/no wallet is named, stored or shown/)).toBeVisible();

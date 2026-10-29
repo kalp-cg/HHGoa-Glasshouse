@@ -11,6 +11,7 @@ export interface Store {
   getdel(key: string): Promise<string | null>;  // read once, atomically
   incr(key: string): Promise<number>;
   sadd(key: string, member: string): Promise<boolean>; // true if newly added
+  setNx(key: string, value: string, ttlSec: number): Promise<boolean>; // a lock: true only for the first caller
 }
 
 function upstash(url: string, token: string): Store {
@@ -31,6 +32,7 @@ function upstash(url: string, token: string): Store {
     getdel: async (k) => (await cmd("GETDEL", k)) as string | null,
     incr: async (k) => Number(await cmd("INCR", k)),
     sadd: async (k, m) => Number(await cmd("SADD", k, m)) === 1,
+    setNx: async (k, v, ttl) => (await cmd("SET", k, v, "NX", "EX", ttl)) === "OK",
   };
 }
 
@@ -85,6 +87,13 @@ function file(path: string): Store {
       const set = (live(d, k)?.v as string[] | undefined) ?? [];
       if (set.includes(m)) return false;
       d[k] = { v: [...set, m] };
+      save(d);
+      return true;
+    },
+    setNx: async (k, v, ttl) => {
+      const d = load();
+      if (live(d, k)) return false;
+      d[k] = { v, exp: Date.now() + ttl * 1000 };
       save(d);
       return true;
     },

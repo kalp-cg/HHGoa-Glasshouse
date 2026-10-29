@@ -2,6 +2,8 @@
 // Built from public chain data; no wallet is named, stored or shown.
 import type { Metadata } from "next";
 import totals from "../../../../fixtures/real-base-totals.json";
+import { LivePulse } from "../_live/LivePulse";
+import { LiveReal } from "../_live/LiveReal";
 
 export const metadata: Metadata = {
   title: "Real agent payments on Base · Glasshouse",
@@ -53,6 +55,12 @@ export default function RealPage() {
         </p>
       </section>
 
+      <div className="mb-6 grid gap-6">
+        <LivePulse />
+        <LiveReal />
+      </div>
+
+      <h2 className="mb-3 text-2xl font-semibold">Snapshot: {t.wallets_analysed} wallets from {t.window}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat value={`${t.give_away_time_zone_pct}%`} label="give away their time zone from when payments stop at night" />
         <Stat value={`${t.funded_from_exchange_like_wallet_pct}%`} label="were funded straight from an exchange-like wallet, which likely knows the owner" />

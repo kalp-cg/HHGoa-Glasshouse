@@ -57,7 +57,7 @@ export async function auditProfile(ledger: Ledger, address: Address): Promise<Pr
   return profile(labelled, analyze(labelled), address, { mode: "open", source: "base-mainnet" });
 }
 
-async function rpc(method: string, params: unknown[]): Promise<string> {
+export async function rpc(method: string, params: unknown[]): Promise<string> {
   const res = await fetch(process.env.BASE_RPC_URL || "https://mainnet.base.org", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
