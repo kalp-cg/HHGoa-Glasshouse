@@ -16,7 +16,8 @@ let narrativePOST: (r: Request) => Promise<Response>;
 
 beforeAll(async () => {
   process.env.OFFLINE_MODE = "true";
-  delete process.env.ANTHROPIC_API_KEY;
+  process.env.ANTHROPIC_API_KEY = "";
+  process.env.GROQ_API_KEY = "";
   ({ GET: profileGET } = await import("../profile/route"));
   ({ GET: graphGET } = await import("../graph/route"));
   ({ POST: narrativePOST } = await import("../narrative/route"));

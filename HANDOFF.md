@@ -255,3 +255,10 @@ Needs Kalp:
 - Still needed on Vercel: **Upstash** REST URL + token (audits need a shared store; `/api/audit/challenge` returns 503 until then) and **`DODO_PRODUCT_ID`**. Add to `.env`; I copy them to Vercel and redeploy.
 - TigerGraph token expires **4 Nov**. Refresh: README → TigerGraph step 2, then update `TG_TOKEN` on Vercel.
 - Kalp: rotate the Vercel token and the Alchemy key after the demo (both were pasted into chat).
+
+## Claude · 29 Oct, Upstash + live audit proven
+- Upstash Redis connected (local `.env` and Vercel), site redeployed. **Gate 4 on the live URL, with real signatures:** foreign signature → 401; owner's → own profile from real Base data in 0.8 s with a session cookie; reused nonce → 401. The test audit was counted, so the counters were reset to zero (live store is empty, usage numbers are honest).
+- AI write-up: Anthropic is **not** needed. Provider order: `GROQ_API_KEY` (free) → `ANTHROPIC_API_KEY` → built-in template. viaSocket's "Run AI Model" worked but its upstream model credits are exhausted (reported to viaSocket as a problem event).
+- **Privacy rule in code:** a real person's audit (`source: "base-mainnet"`) never goes to an outside model; only the synthetic demo profile does.
+- Tests are hermetic (they blank the Upstash/LLM settings and can't touch the live store).
+- Still open: `DODO_PRODUCT_ID` (checkout), testnet USDC for the relayer (Shield payment + Gate 3), optional `GROQ_API_KEY`.

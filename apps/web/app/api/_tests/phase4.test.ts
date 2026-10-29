@@ -34,10 +34,8 @@ let chats: Handler, connected: Handler;
 beforeAll(async () => {
   process.env.GLASSHOUSE_STORE_FILE = join(mkdtempSync(join(tmpdir(), "gh-store-")), "store.json");
   process.env.SESSION_SECRET = "test-secret-test-secret-test-secret-123";
-  delete process.env.UPSTASH_REDIS_REST_URL;
-  delete process.env.KV_REST_API_URL;
-  delete process.env.DODO_API_KEY;
-  delete process.env.RELAYER_URL;
+  // blank (not deleted): _lib/env.ts loads the repo's real .env without overriding variables that already exist
+  for (const k of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN", "DODO_API_KEY", "DODO_PRODUCT_ID", "RELAYER_URL", "GROQ_API_KEY", "ANTHROPIC_API_KEY"]) process.env[k] = "";
   // the only network call left: eth_blockNumber for the audit window
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ jsonrpc: "2.0", id: 1, result: "0x1000000" })));
   ({ POST: challenge } = await import("../audit/challenge/route"));
@@ -135,8 +133,8 @@ describe("stats without a shared store (fresh Vercel deploy)", () => {
     vi.resetModules();
     const saved = { v: process.env.VERCEL, u: process.env.UPSTASH_REDIS_REST_URL, k: process.env.KV_REST_API_URL };
     process.env.VERCEL = "1";
-    delete process.env.UPSTASH_REDIS_REST_URL;
-    delete process.env.KV_REST_API_URL;
+    process.env.UPSTASH_REDIS_REST_URL = "";
+    process.env.KV_REST_API_URL = "";
     try {
       const { GET } = await import("../stats/route");
       const res = await GET();
@@ -147,8 +145,33 @@ describe("stats without a shared store (fresh Vercel deploy)", () => {
       expect(challengeRes.status).toBe(503);
     } finally {
       if (saved.v === undefined) delete process.env.VERCEL; else process.env.VERCEL = saved.v;
-      if (saved.u) process.env.UPSTASH_REDIS_REST_URL = saved.u;
-      if (saved.k) process.env.KV_REST_API_URL = saved.k;
+      process.env.UPSTASH_REDIS_REST_URL = saved.u ?? "";
+      process.env.KV_REST_API_URL = saved.k ?? "";
+      vi.resetModules();
+    }
+  });
+});
+
+describe("write-up privacy", () => {
+  it("a real-chain profile never goes to an outside model: template only, even with a key set", async () => {
+    vi.resetModules();
+    const f = vi.fn(async (..._args: unknown[]) => Response.json({ choices: [{ message: { content: "LLM TEXT" } }] }));
+    vi.stubGlobal("fetch", f);
+    process.env.GROQ_API_KEY = "test";
+    process.env.ANTHROPIC_API_KEY = "";
+    try {
+      const { narrative } = await import("../_lib/narrative");
+      const real = { ...JSON.parse(JSON.stringify((await import("../../../../../fixtures/profile.open.json")).default)), source: "base-mainnet" } as ProfileFacts;
+      expect((await narrative(real)).source).toBe("template");
+      expect(f).not.toHaveBeenCalled();
+      const demo = { ...real, source: "synthetic" } as ProfileFacts;
+      expect(await narrative(demo)).toEqual({ text: "LLM TEXT", source: "groq" });
+      expect(f.mock.calls[0]![0]).toBe("https://api.groq.com/openai/v1/chat/completions");
+      f.mockResolvedValueOnce(new Response("nope", { status: 503 }));
+      expect((await narrative(demo)).source).toBe("template");
+    } finally {
+      process.env.GROQ_API_KEY = "";
+      vi.stubGlobal("fetch", vi.fn(async () => Response.json({ jsonrpc: "2.0", id: 1, result: "0x1000000" })));
       vi.resetModules();
     }
   });

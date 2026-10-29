@@ -42,25 +42,52 @@ export function templateNarrative(f: ProfileFacts): string {
   ].join(" ");
 }
 
-export async function narrative(facts: ProfileFacts): Promise<{ text: string; source: "claude" | "template" }> {
-  if (!process.env.ANTHROPIC_API_KEY) return { text: templateNarrative(facts), source: "template" };
+// Groq's OpenAI-compatible chat API (free tier): https://console.groq.com/docs/api-reference
+async function groqNarrative(facts: ProfileFacts): Promise<string> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
+    body: JSON.stringify({
+      model: process.env.NARRATIVE_MODEL || "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_completion_tokens: 400,
+      messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify(facts) }],
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  return body.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+async function claudeNarrative(facts: ProfileFacts): Promise<string> {
+  const client = new Anthropic({ timeout: 30_000, maxRetries: 1 });
+  const response = await client.beta.messages.create({
+    model: MODEL,
+    max_tokens: 16000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "low" },
+    system: SYSTEM,
+    messages: [{ role: "user", content: JSON.stringify(facts) }],
+  });
+  if (response.stop_reason === "refusal") return "";
+  return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ").trim();
+}
+
+// Provider order: Groq (free) if GROQ_API_KEY, else Claude if ANTHROPIC_API_KEY, else the template.
+// A real person's audit (source "base-mainnet") is never sent to an outside model: it always gets the template.
+export async function narrative(facts: ProfileFacts): Promise<{ text: string; source: "groq" | "claude" | "template" }> {
+  const template = { text: templateNarrative(facts), source: "template" as const };
+  if (facts.source !== "synthetic") return template;
+  const provider = process.env.GROQ_API_KEY ? "groq" : process.env.ANTHROPIC_API_KEY ? "claude" : null;
+  if (!provider) return template;
   try {
-    const client = new Anthropic({ timeout: 30_000, maxRetries: 1 });
-    const response = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low" },
-      system: SYSTEM,
-      messages: [{ role: "user", content: JSON.stringify(facts) }],
-    });
-    const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ").trim();
-    if (response.stop_reason === "refusal" || !text) return { text: templateNarrative(facts), source: "template" };
-    return { text, source: "claude" };
+    const text = provider === "groq" ? await groqNarrative(facts) : await claudeNarrative(facts);
+    return text ? { text, source: provider } : template;
   } catch (err) {
     if (err instanceof Anthropic.APIError) console.warn(`Claude API ${err.status}: ${err.message}`);
-    else console.warn(`Claude API call failed: ${err instanceof Error ? err.message : String(err)}`);
-    return { text: templateNarrative(facts), source: "template" };
+    else console.warn(`${provider} write-up failed: ${err instanceof Error ? err.message : String(err)}`);
+    return template;
   }
 }
