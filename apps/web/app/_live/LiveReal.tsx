@@ -32,7 +32,8 @@ export function useLiveReal(): { totals: Totals | null; justAdded: boolean } {
   return { totals, justAdded };
 }
 
-const pct = (k: number, n: number) => (n ? `${Math.round((k / n) * 100)}%` : "–");
+// small samples read honestly as counts; percentages only once there are 10 wallets
+const pct = (k: number, n: number) => (!n ? "–" : n < 10 ? `${k} of ${n}` : `${Math.round((k / n) * 100)}%`);
 const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]! : 0);
 
 export function LiveReal() {
