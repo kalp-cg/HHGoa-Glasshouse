@@ -278,3 +278,12 @@ Needs Kalp:
   - `pnpm shield:export`: writes the real testnet ledger to `packages/chain/exports/testnet.shield.json` for Gate 3.
 - Playwright checks the Shield panel renders the transaction hashes as Basescan links (Gate 3 "tx hash shown in the UI").
 - **To finish Gate 3 the moment the relayer has USDC:** run `pnpm shield:fund`, click "Run a real Shield session" on the live site, then `pnpm shield:export` and `pnpm demo:check`.
+
+## Claude · 29 Oct, all gates green (17/17 in `pnpm demo:check`)
+- **Gate 3: real Shield session on the live site, verified on chain (Base Sepolia):**
+  - funding: Rail → one-time wallet `0x9de6…3393`, 1 USDC, tx `0x8880946f…6e44`, submitted by our relayer
+  - x402 payment: one-time wallet → x402 test service, 0.01 USDC, tx `0x7603a7f8…0883`, submitted by the x402.org facilitator (the one-time wallet needed no ETH)
+  - `packages/chain/exports/testnet.shield.json` holds the real ledger; analysis links nothing to the one-time wallet.
+- **Gate 4:** `DODO_PRODUCT_ID` set (local + Vercel). The live `/api/checkout` creates a Dodo test-mode checkout session; `demo:check` now calls it for real.
+- Honest caveat: the faucet gave 1 USDC, but `Rail.deposit()` takes exactly 10. I sent the 1 USDC to the Rail with a plain transfer to run this session. For the proper deposit flow (and a non-zero `depositorCount`), get 10+ test USDC (faucet.circle.com gives 20), then run `pnpm shield:fund`.
+- Rotate after the demo (all were pasted into chat): Vercel token, Alchemy key, Upstash token, Groq key, Dodo key, viaSocket embed secret, TigerGraph secret.

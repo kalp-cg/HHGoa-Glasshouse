@@ -1,0 +1,54 @@
+{
+  "seed": 0,
+  "start_ts": 1793251116,
+  "days": 0.0008333333333333334,
+  "wallets": [
+    {
+      "addr": "0x0c5365f94d5d0c07a5cf2e0cdd8d0841f2efbef1",
+      "kind": "service",
+      "label": "x402 test service",
+      "category": "Developer"
+    },
+    {
+      "addr": "0x2c9c4b8ec4454d0d58450892bbd8b34a8386897b",
+      "kind": "pool",
+      "label": "Shield Rail (Base Sepolia)",
+      "category": null
+    },
+    {
+      "addr": "0x7362b05cc0f89a093a235e4f2c3b63328e9d845f",
+      "kind": "",
+      "label": "",
+      "category": null
+    },
+    {
+      "addr": "0x9de6b68b78eae917871d14f1920515e2c26f3393",
+      "kind": "",
+      "label": "",
+      "category": null
+    }
+  ],
+  "transfers": [
+    {
+      "tx": "0xc9d8519e89f1f40d34c4816ebf87b97b71d39cb828fda040278c9ace938d9392",
+      "from": "0x7362b05cc0f89a093a235e4f2c3b63328e9d845f",
+      "to": "0x2c9c4b8ec4454d0d58450892bbd8b34a8386897b",
+      "amount": 1,
+      "ts": 1793251116
+    },
+    {
+      "tx": "0x8880946f831c79200b6f6c4dc539d3ca3b32b9971b32ca2aee3d4228b2dc6e44",
+      "from": "0x2c9c4b8ec4454d0d58450892bbd8b34a8386897b",
+      "to": "0x9de6b68b78eae917871d14f1920515e2c26f3393",
+      "amount": 1,
+      "ts": 1793251186
+    },
+    {
+      "tx": "0x7603a7f874ac140254d4745c86d67629a83a11738719bacc7bde7271adc60883",
+      "from": "0x9de6b68b78eae917871d14f1920515e2c26f3393",
+      "to": "0x0c5365f94d5d0c07a5cf2e0cdd8d0841f2efbef1",
+      "amount": 0.01,
+      "ts": 1793251188
+    }
+  ]
+}

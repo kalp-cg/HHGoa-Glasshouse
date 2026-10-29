@@ -89,9 +89,14 @@ function deployed(): Result {
     : { status: "FAIL", note: `${PUBLIC_URL}/api/stats did not answer` };
 }
 
-const dodo = (): Result => process.env.DODO_API_KEY && process.env.DODO_PRODUCT_ID
-  ? { status: "PENDING", note: "keys set; open /api/checkout on the deployed site to confirm" }
-  : { status: "PENDING", note: "DODO_API_KEY / DODO_PRODUCT_ID not set in .env" };
+// Opens a real Dodo test-mode checkout session through the deployed site
+function dodo(): Result {
+  const out = spawnSync("curl", ["-fsS", "-m", "40", "-X", "POST", "-H", "Content-Type: application/json", "-d", '{"plan":"pro-audit"}', `${PUBLIC_URL}/api/checkout`], { encoding: "utf8" });
+  if (out.status !== 0) return { status: "FAIL", note: `${PUBLIC_URL}/api/checkout did not answer` };
+  return /checkout\.dodopayments\.com/.test(out.stdout)
+    ? { status: "PASS", note: "test-mode checkout session created" }
+    : { status: "FAIL", note: out.stdout.slice(0, 120) };
+}
 
 function engineSeed42(): Result {
   const open = simulate(42, "open");
