@@ -26,10 +26,13 @@ function world(mode: Mode): World {
 
 export type LinkSource = "tigergraph" | "engine";
 const tgCache = new Map<Mode, SameOwnerLink[]>();
+// After a TigerGraph failure, use the engine for a minute instead of waiting out the timeout on every request.
+const TG_COOLDOWN_MS = 60_000;
+let tgDownUntil = 0;
 
 async function links(mode: Mode, ledger: Ledger): Promise<{ links: SameOwnerLink[]; source: LinkSource }> {
   const cfg = configFromEnv();
-  if (offlineMode() || !cfg) return { links: analyze(ledger), source: "engine" };
+  if (offlineMode() || !cfg || Date.now() < tgDownUntil) return { links: analyze(ledger), source: "engine" };
   const cached = tgCache.get(mode);
   if (cached) return { links: cached, source: "tigergraph" };
   try {
@@ -37,7 +40,8 @@ async function links(mode: Mode, ledger: Ledger): Promise<{ links: SameOwnerLink
     tgCache.set(mode, found);
     return { links: found, source: "tigergraph" };
   } catch (err) {
-    console.warn(`TigerGraph unavailable, using the engine: ${err instanceof Error ? err.message : String(err)}`);
+    tgDownUntil = Date.now() + TG_COOLDOWN_MS;
+    console.warn(`TigerGraph unavailable, using the engine for 60 s: ${err instanceof Error ? err.message : String(err)}`);
     return { links: analyze(ledger), source: "engine" };
   }
 }
